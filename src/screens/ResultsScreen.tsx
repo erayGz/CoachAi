@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Activity, AlertTriangle, Info, Target, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Check, Info, Target, Zap } from "lucide-react";
 import { Chip, FieldGrid, ScoreRing, SubScoreCard, TrainingDrillCard } from "../components";
 import { analysisResults, technicalBreakdown } from "../data/analysisResults";
 import { trainingDrills } from "../data/trainingDrills";
@@ -18,6 +18,12 @@ export function ResultsScreen({ go }: ScreenProps) {
           <h1 className="text-[22px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
             Analysis Results
           </h1>
+          <div className="flex items-center gap-1.5 mt-1">
+            <Check size={11} color={G.green} strokeWidth={3} />
+            <span className="text-[10px] font-bold tracking-wide uppercase" style={{ color: G.green }}>
+              Saved to History
+            </span>
+          </div>
         </div>
         <button
           onClick={() => setWarning((current) => !current)}
@@ -150,7 +156,7 @@ export function ResultsScreen({ go }: ScreenProps) {
               boxShadow: `0 4px 20px ${G.green}35`,
             }}
           >
-            Save Result
+            View History
           </button>
           <button
             onClick={() => go("shooting-guide")}

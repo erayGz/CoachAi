@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { FieldGrid, GlowOrb } from "../components";
+import { saveMockAnalysisToHistory } from "../utils/historyStorage";
 import { G } from "../utils/theme";
 import type { ScreenProps } from "../types";
 
@@ -17,6 +18,7 @@ const RESULT_DELAY_MS = 300;
 
 export function ProcessingScreen({ go }: ScreenProps) {
   const [progress, setProgress] = useState(0);
+  const hasSavedHistoryRef = useRef(false);
   const step = Math.min(Math.floor((progress / 100) * processingSteps.length), processingSteps.length - 1);
 
   useEffect(() => {
@@ -31,6 +33,10 @@ export function ProcessingScreen({ go }: ScreenProps) {
 
       if (nextProgress >= 100) {
         window.clearInterval(timer);
+        if (!hasSavedHistoryRef.current) {
+          hasSavedHistoryRef.current = true;
+          saveMockAnalysisToHistory();
+        }
         resultTimer = window.setTimeout(() => go("results"), RESULT_DELAY_MS);
       }
     }, 50);

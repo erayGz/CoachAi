@@ -41,6 +41,19 @@ export type HistoryItem = {
   label: string;
 };
 
+export type AnalysisHistoryItem = {
+  id: string;
+  createdAt: string;
+  moduleName: string;
+  drillName: string;
+  overallScore: number;
+  level: string;
+  detectedShots: number;
+  videoQuality: string;
+  analysisReliability: number;
+  mainFocus: string;
+};
+
 export type ProfileField = {
   label: string;
   value: string;
