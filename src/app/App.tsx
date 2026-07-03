@@ -11,6 +11,7 @@ import { activeModuleLabel, appMeta } from "../data/appMeta";
 import { initialScreen, screenRegistry } from "../utils/navigation";
 import { createAnalysisSessionId } from "../utils/session";
 import { saveMockAnalysisToHistory } from "../utils/historyStorage";
+import { generateMockShootingAnalysisResult } from "../utils/mockAnalysis";
 import { G } from "../utils/theme";
 import type { AnalysisSession, AppScreenProps, Screen, VideoValidationResult } from "../types";
 
@@ -75,6 +76,7 @@ export default function App() {
         completedAt: new Date().toISOString(),
         historyItemId: currentSession.id,
         savedToHistory: true,
+        result: generateMockShootingAnalysisResult(),
       };
 
       saveMockAnalysisToHistory(completedSession);

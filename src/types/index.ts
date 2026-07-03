@@ -26,12 +26,46 @@ export type SubScore = {
   score: number;
   color: string;
   delta: string;
+  status: "Strong" | "Good" | "Needs Work";
 };
 
 export type TrainingDrill = {
   name: string;
   reps: string;
   focus: string;
+};
+
+export type AnalysisLevel =
+  | "Beginner"
+  | "Developing"
+  | "Intermediate"
+  | "Advanced"
+  | "Elite";
+
+export type VideoQuality = "Fair" | "Good" | "Excellent";
+
+export type AnalysisReliability = "Medium" | "Good" | "High";
+
+export type ShootingAnalysisCategory =
+  | "Approach & Balance"
+  | "Plant Foot Position"
+  | "Body Posture"
+  | "Contact Mechanics"
+  | "Follow-through"
+  | "Accuracy";
+
+export type ShootingAnalysisResult = {
+  overallScore: number;
+  level: AnalysisLevel;
+  detectedShots: number;
+  totalShots: number;
+  videoQuality: VideoQuality;
+  analysisReliability: AnalysisReliability;
+  mainFocus: ShootingAnalysisCategory;
+  mainFocusDescription: string;
+  technicalBreakdown: SubScore[];
+  aiCoachFeedback: string;
+  recommendedTraining: TrainingDrill[];
 };
 
 export type HistoryItem = {
@@ -47,10 +81,11 @@ export type AnalysisHistoryItem = {
   moduleName: string;
   drillName: string;
   overallScore: number;
-  level: string;
+  level: AnalysisLevel;
   detectedShots: number;
-  videoQuality: string;
-  analysisReliability: number;
+  totalShots: number;
+  videoQuality: VideoQuality;
+  analysisReliability: AnalysisReliability;
   mainFocus: string;
 };
 
@@ -81,6 +116,7 @@ export type AnalysisSession = {
   completedAt?: string;
   historyItemId?: string;
   savedToHistory: boolean;
+  result?: ShootingAnalysisResult;
 };
 
 export type VideoValidationError =

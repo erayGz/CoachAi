@@ -1,6 +1,5 @@
 import { activeModuleLabel } from "../data/appMeta";
-import { analysisResults } from "../data/analysisResults";
-import type { AnalysisHistoryItem, AnalysisSession } from "../types";
+import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, VideoQuality } from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
 
@@ -16,24 +15,56 @@ function createHistoryId() {
   return `analysis-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function isAnalysisHistoryItem(value: unknown): value is AnalysisHistoryItem {
+function normalizeReliability(value: unknown): AnalysisReliability | null {
+  if (value === "Medium" || value === "Good" || value === "High") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    if (value >= 86) return "High";
+    if (value >= 70) return "Good";
+    return "Medium";
+  }
+
+  return null;
+}
+
+function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | null {
   if (!value || typeof value !== "object") {
-    return false;
+    return null;
   }
 
   const item = value as Record<string, unknown>;
-  return (
-    typeof item.id === "string" &&
-    typeof item.createdAt === "string" &&
-    typeof item.moduleName === "string" &&
-    typeof item.drillName === "string" &&
-    typeof item.overallScore === "number" &&
-    typeof item.level === "string" &&
-    typeof item.detectedShots === "number" &&
-    typeof item.videoQuality === "string" &&
-    typeof item.analysisReliability === "number" &&
-    typeof item.mainFocus === "string"
-  );
+  const reliability = normalizeReliability(item.analysisReliability);
+
+  if (
+    typeof item.id !== "string" ||
+    typeof item.createdAt !== "string" ||
+    typeof item.moduleName !== "string" ||
+    typeof item.drillName !== "string" ||
+    typeof item.overallScore !== "number" ||
+    typeof item.level !== "string" ||
+    typeof item.detectedShots !== "number" ||
+    typeof item.videoQuality !== "string" ||
+    typeof item.mainFocus !== "string" ||
+    !reliability
+  ) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    createdAt: item.createdAt,
+    moduleName: item.moduleName,
+    drillName: item.drillName,
+    overallScore: item.overallScore,
+    level: item.level as AnalysisLevel,
+    detectedShots: item.detectedShots,
+    totalShots: typeof item.totalShots === "number" ? item.totalShots : 5,
+    videoQuality: item.videoQuality as VideoQuality,
+    analysisReliability: reliability,
+    mainFocus: item.mainFocus,
+  };
 }
 
 function sortNewestFirst(items: AnalysisHistoryItem[]) {
@@ -56,7 +87,7 @@ export function getAnalysisHistory(): AnalysisHistoryItem[] {
       return [];
     }
 
-    return sortNewestFirst(parsedHistory.filter(isAnalysisHistoryItem));
+    return sortNewestFirst(parsedHistory.map(normalizeAnalysisHistoryItem).filter((item): item is AnalysisHistoryItem => Boolean(item)));
   } catch {
     return [];
   }
@@ -90,17 +121,24 @@ export function clearAnalysisHistory() {
 }
 
 export function createMockAnalysisHistoryItem(session: AnalysisSession): AnalysisHistoryItem {
+  if (!session.result) {
+    throw new Error("Cannot save history without a generated analysis result.");
+  }
+
+  const { result } = session;
+
   return {
     id: session.historyItemId ?? session.id ?? createHistoryId(),
     createdAt: session.completedAt ?? new Date().toISOString(),
     moduleName: activeModuleLabel,
     drillName: "Shooting Analysis",
-    overallScore: analysisResults.overallScore,
-    level: analysisResults.level,
-    detectedShots: analysisResults.detectedShots,
-    videoQuality: analysisResults.videoQuality,
-    analysisReliability: analysisResults.analysisReliability,
-    mainFocus: analysisResults.mainFocusThisWeek,
+    overallScore: result.overallScore,
+    level: result.level,
+    detectedShots: result.detectedShots,
+    totalShots: result.totalShots,
+    videoQuality: result.videoQuality,
+    analysisReliability: result.analysisReliability,
+    mainFocus: result.mainFocus,
   };
 }
 

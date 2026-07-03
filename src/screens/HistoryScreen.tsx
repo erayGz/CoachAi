@@ -21,8 +21,8 @@ export function HistoryScreen({ go }: ScreenProps) {
   const bestScore = hasHistory ? Math.max(...scores) : 0;
   const avgScore = hasHistory ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : 0;
   const latestScore = historyItems[0]?.overallScore ?? 0;
+  const latestFocus = historyItems[0]?.mainFocus ?? "Plant Foot Position";
   const scoreDelta = getOverallScoreDelta(historyItems);
-  const currentFocus = historyItems[0]?.mainFocus ?? "Shooting technique";
 
   function handleClearHistory() {
     clearAnalysisHistory();
@@ -51,17 +51,23 @@ export function HistoryScreen({ go }: ScreenProps) {
             border: `1px solid ${hasHistory ? `${G.red}30` : G.border}`,
           }}
         >
-          Dev: Clear History
+          Dev: Clear Local History
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-4" style={{ scrollbarWidth: "none" }}>
         {hasHistory ? (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              <StatCard label="Latest" value={latestScore} color={G.green} className="rounded-xl py-3.5 px-1" />
-              <StatCard label="Best" value={bestScore} color={G.blue} className="rounded-xl py-3.5 px-1" />
-              <StatCard label="Average" value={avgScore} color={G.amber} className="rounded-xl py-3.5 px-1" />
+            <div className="grid grid-cols-2 gap-2">
+              <StatCard label="Latest Score" value={latestScore} color={G.green} className="rounded-xl py-3.5 px-1" />
+              <StatCard label="Best Score" value={bestScore} color={G.blue} className="rounded-xl py-3.5 px-1" />
+              <StatCard label="Average Score" value={avgScore} color={G.amber} className="rounded-xl py-3.5 px-1" />
+              <StatCard label="Total Analyses" value={historyItems.length} color={G.purple} className="rounded-xl py-3.5 px-1" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <ProgressInsightCard label="Most Improved" value="Follow-through +12" color={G.green} />
+              <ProgressInsightCard label="Needs Work" value={latestFocus} color={G.amber} />
             </div>
 
             <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
@@ -71,8 +77,8 @@ export function HistoryScreen({ go }: ScreenProps) {
                   <p className="text-[11px] mt-0.5" style={{ color: G.green }}>{scoreDelta}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px]" style={{ color: G.muted }}>Current focus</p>
-                  <p className="text-[11px] font-bold mt-0.5" style={{ color: G.green }}>{currentFocus}</p>
+                  <p className="text-[10px]" style={{ color: G.muted }}>Needs work</p>
+                  <p className="text-[11px] font-bold mt-0.5" style={{ color: G.amber }}>{latestFocus}</p>
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={110}>
@@ -84,7 +90,7 @@ export function HistoryScreen({ go }: ScreenProps) {
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="label" tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[55, 90]} tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[30, 95]} tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
@@ -139,7 +145,7 @@ function EmptyHistoryState({ go }: ScreenProps) {
         <Upload size={20} color={G.green} />
       </div>
       <p className="text-[13px] font-semibold mt-4 leading-relaxed" style={{ color: G.whiteDim }}>
-        No analyses yet. Upload your first shooting video to start tracking progress.
+        No analyses yet. Upload your first shooting video to start tracking your progress.
       </p>
       <button
         onClick={() => go("shooting-guide")}
@@ -150,7 +156,7 @@ function EmptyHistoryState({ go }: ScreenProps) {
           fontFamily: "'Barlow Condensed', sans-serif",
         }}
       >
-        Start Analysis
+        Start First Analysis
       </button>
     </div>
   );
@@ -164,13 +170,13 @@ function HistoryResultCard({ item, delta }: { item: AnalysisHistoryItem; delta: 
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-semibold truncate" style={{ color: G.white }}>
-          {item.drillName} · {item.moduleName}
+          {item.drillName}
         </p>
         <p className="text-[11px] mt-0.5 truncate" style={{ color: G.muted }}>
-          {formatHistoryDateTime(item.createdAt)} · {item.detectedShots} shots · {item.analysisReliability}% reliability
+          {formatHistoryDateTime(item.createdAt)} - {item.level} - {item.videoQuality} quality - {item.analysisReliability} reliability
         </p>
         <p className="text-[10px] mt-0.5 truncate" style={{ color: G.muted }}>
-          {item.level} · {item.videoQuality} quality · Focus: {item.mainFocus}
+          Focus: {item.mainFocus}
         </p>
       </div>
       <div className="text-right flex-shrink-0">
@@ -183,6 +189,19 @@ function HistoryResultCard({ item, delta }: { item: AnalysisHistoryItem; delta: 
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ProgressInsightCard({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="rounded-xl px-4 py-3" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <p className="text-[9px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+        {label}
+      </p>
+      <p className="text-[13px] font-bold mt-1" style={{ color }}>
+        {value}
+      </p>
     </div>
   );
 }
