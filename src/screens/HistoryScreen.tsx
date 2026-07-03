@@ -37,18 +37,21 @@ export function HistoryScreen({ go }: ScreenProps) {
           <h1 className="text-[28px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
             History
           </h1>
+          <p className="text-[10px] mt-0.5" style={{ color: G.muted }}>
+            Saved locally on this device for MVP testing.
+          </p>
         </div>
         <button
           onClick={handleClearHistory}
           disabled={!hasHistory}
           className="px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide uppercase transition-all"
           style={{
-            background: hasHistory ? `${G.red}12` : G.card2,
+            background: hasHistory ? G.card2 : G.card2,
             color: hasHistory ? G.red : G.muted,
             border: `1px solid ${hasHistory ? `${G.red}30` : G.border}`,
           }}
         >
-          Clear History
+          Dev: Clear History
         </button>
       </div>
 

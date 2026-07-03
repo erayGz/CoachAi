@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertTriangle, Check, Upload } from "lucide-react";
 import { FieldGrid, GlowOrb } from "../components";
-import { saveMockAnalysisToHistory } from "../utils/historyStorage";
 import { G } from "../utils/theme";
-import type { ScreenProps } from "../types";
+import type { AppScreenProps } from "../types";
 
 const processingSteps = [
   "Detecting body movement",
@@ -16,12 +15,16 @@ const processingSteps = [
 const ANALYSIS_DURATION_MS = 2400;
 const RESULT_DELAY_MS = 300;
 
-export function ProcessingScreen({ go }: ScreenProps) {
+export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, onCompleteAnalysis }: AppScreenProps) {
   const [progress, setProgress] = useState(0);
-  const hasSavedHistoryRef = useRef(false);
   const step = Math.min(Math.floor((progress / 100) * processingSteps.length), processingSteps.length - 1);
+  const canProcess = Boolean(selectedVideo && currentAnalysisSession?.status === "processing");
 
   useEffect(() => {
+    if (!currentAnalysisSession || !canProcess) {
+      return;
+    }
+
     const startedAt = Date.now();
     let resultTimer: number | undefined;
 
@@ -33,11 +36,10 @@ export function ProcessingScreen({ go }: ScreenProps) {
 
       if (nextProgress >= 100) {
         window.clearInterval(timer);
-        if (!hasSavedHistoryRef.current) {
-          hasSavedHistoryRef.current = true;
-          saveMockAnalysisToHistory();
-        }
-        resultTimer = window.setTimeout(() => go("results"), RESULT_DELAY_MS);
+        resultTimer = window.setTimeout(() => {
+          onCompleteAnalysis(currentAnalysisSession.id);
+          go("results");
+        }, RESULT_DELAY_MS);
       }
     }, 50);
 
@@ -47,7 +49,29 @@ export function ProcessingScreen({ go }: ScreenProps) {
         window.clearTimeout(resultTimer);
       }
     };
-  }, [go]);
+  }, [canProcess, currentAnalysisSession, go, onCompleteAnalysis]);
+
+  if (!selectedVideo || !currentAnalysisSession) {
+    return (
+      <ProcessingGate
+        title="No video selected"
+        detail="Upload a valid 10-25 second shooting video before running analysis."
+        buttonLabel="Go to Upload"
+        onAction={() => go("video-upload")}
+      />
+    );
+  }
+
+  if (currentAnalysisSession.status === "completed") {
+    return (
+      <ProcessingGate
+        title="Analysis already completed"
+        detail="This shooting analysis has finished and is ready to review."
+        buttonLabel="View Results"
+        onAction={() => go("results")}
+      />
+    );
+  }
 
   return (
     <div
@@ -128,6 +152,45 @@ export function ProcessingScreen({ go }: ScreenProps) {
       </div>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
+function ProcessingGate({
+  title,
+  detail,
+  buttonLabel,
+  onAction,
+}: {
+  title: string;
+  detail: string;
+  buttonLabel: string;
+  onAction: () => void;
+}) {
+  return (
+    <div
+      className="relative flex flex-col items-center justify-center h-full px-6 gap-5 text-center"
+      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 60%)` }}
+    >
+      <FieldGrid opacity={0.04} />
+      <GlowOrb top="0" right="0" size={240} opacity={0.08} />
+      <div className="relative w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+        <AlertTriangle size={24} color={G.amber} />
+      </div>
+      <div className="relative">
+        <h2 className="text-[24px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
+          {title}
+        </h2>
+        <p className="text-[12px] mt-2 leading-relaxed" style={{ color: G.muted }}>{detail}</p>
+      </div>
+      <button
+        onClick={onAction}
+        className="relative px-5 py-3 rounded-2xl text-[13px] font-black tracking-wide uppercase flex items-center gap-2 transition-all active:scale-[0.97]"
+        style={{ background: "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)", color: G.bg, fontFamily: "'Barlow Condensed', sans-serif" }}
+      >
+        <Upload size={14} />
+        {buttonLabel}
+      </button>
     </div>
   );
 }

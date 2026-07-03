@@ -1,9 +1,9 @@
-import { useRef, useState, type ChangeEvent } from "react";
-import { AlertTriangle, Camera, Check, Upload } from "lucide-react";
+import { useRef, useState, type ChangeEvent, type MouseEvent } from "react";
+import { AlertTriangle, Camera, Check, RefreshCw, Trash2, Upload } from "lucide-react";
 import { FieldGrid, Header } from "../components";
 import { formatVideoDuration, formatVideoSize, validateShootingVideo } from "../utils/video";
 import { G } from "../utils/theme";
-import type { ScreenProps, VideoValidationResult } from "../types";
+import type { AppScreenProps } from "../types";
 
 const checklist = [
   "Full body visible throughout",
@@ -13,14 +13,19 @@ const checklist = [
   "5 shots performed",
 ];
 
-export function VideoUploadScreen({ go }: ScreenProps) {
+export function VideoUploadScreen({
+  go,
+  selectedVideoValidation,
+  onVideoValidationChange,
+  onClearSelectedVideo,
+  onStartAnalysis,
+}: AppScreenProps) {
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const [validation, setValidation] = useState<VideoValidationResult | null>(null);
   const [isReadingVideo, setIsReadingVideo] = useState(false);
 
-  const metadata = validation?.metadata ?? null;
-  const isValidVideo = validation?.isValid ?? false;
+  const metadata = selectedVideoValidation?.metadata ?? null;
+  const isValidVideo = selectedVideoValidation?.isValid ?? false;
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -32,7 +37,7 @@ export function VideoUploadScreen({ go }: ScreenProps) {
 
     setIsReadingVideo(true);
     const result = await validateShootingVideo(file);
-    setValidation(result);
+    onVideoValidationChange(result);
     setIsReadingVideo(false);
   }
 
@@ -44,10 +49,14 @@ export function VideoUploadScreen({ go }: ScreenProps) {
     cameraInputRef.current?.click();
   }
 
-  function analyzeVideo() {
-    if (isValidVideo) {
-      go("processing");
-    }
+  function changeVideo(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    openGalleryPicker();
+  }
+
+  function removeVideo(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    onClearSelectedVideo();
   }
 
   return (
@@ -63,7 +72,7 @@ export function VideoUploadScreen({ go }: ScreenProps) {
           style={{
             height: 188,
             background: isValidVideo ? `${G.green}08` : G.card,
-            border: `2px dashed ${isValidVideo ? G.green : validation?.message ? `${G.red}55` : G.border}`,
+            border: `2px dashed ${isValidVideo ? G.green : selectedVideoValidation?.message ? `${G.red}55` : G.border}`,
             borderRadius: 20,
           }}
         >
@@ -95,6 +104,27 @@ export function VideoUploadScreen({ go }: ScreenProps) {
                 <p className="text-[11px]" style={{ color: G.muted }}>
                   {formatVideoDuration(metadata.durationSeconds)}&nbsp;&nbsp;·&nbsp;&nbsp;{formatVideoSize(metadata.fileSizeMb)}
                 </p>
+                <p className="text-[10px] font-bold tracking-wide uppercase" style={{ color: isValidVideo ? G.green : G.red }}>
+                  {isValidVideo ? "Validation: Ready for analysis" : "Validation: Needs attention"}
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    onClick={changeVideo}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase flex items-center gap-1"
+                    style={{ background: G.card2, color: G.whiteDim, border: `1px solid ${G.border}` }}
+                  >
+                    <RefreshCw size={10} />
+                    Change
+                  </button>
+                  <button
+                    onClick={removeVideo}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide uppercase flex items-center gap-1"
+                    style={{ background: `${G.red}10`, color: G.red, border: `1px solid ${G.red}28` }}
+                  >
+                    <Trash2 size={10} />
+                    Remove
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -103,6 +133,9 @@ export function VideoUploadScreen({ go }: ScreenProps) {
                 </div>
                 <p className="text-[13px] font-semibold" style={{ color: G.white }}>Tap to select video</p>
                 <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 10-25 seconds</p>
+                <p className="text-[10px] max-w-[240px] leading-relaxed" style={{ color: G.muted }}>
+                  Choose a short shooting clip to unlock the mocked analysis flow.
+                </p>
               </>
             )}
           </div>
@@ -147,11 +180,11 @@ export function VideoUploadScreen({ go }: ScreenProps) {
           ))}
         </div>
 
-        {validation?.message && <UploadError title="Upload issue" detail={validation.message} />}
+        {selectedVideoValidation?.message && <UploadError title="Upload issue" detail={selectedVideoValidation.message} />}
 
         <button
           disabled={!isValidVideo}
-          onClick={analyzeVideo}
+          onClick={onStartAnalysis}
           className="w-full py-[17px] rounded-2xl font-black text-[16px] tracking-[0.1em] uppercase transition-all active:scale-[0.97]"
           style={{
             background: isValidVideo ? "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)" : G.card2,

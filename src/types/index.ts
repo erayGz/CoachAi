@@ -71,6 +71,18 @@ export type SelectedVideoMetadata = {
   durationSeconds: number;
 };
 
+export type AnalysisSessionStatus = "processing" | "completed";
+
+export type AnalysisSession = {
+  id: string;
+  selectedVideo: SelectedVideoMetadata;
+  status: AnalysisSessionStatus;
+  createdAt: string;
+  completedAt?: string;
+  historyItemId?: string;
+  savedToHistory: boolean;
+};
+
 export type VideoValidationError =
   | "not-video"
   | "duration-unavailable"
@@ -90,3 +102,13 @@ export type VideoValidationResult =
       error: VideoValidationError;
       message: string;
     };
+
+export type AppScreenProps = ScreenProps & {
+  selectedVideo: SelectedVideoMetadata | null;
+  selectedVideoValidation: VideoValidationResult | null;
+  currentAnalysisSession: AnalysisSession | null;
+  onVideoValidationChange: (validation: VideoValidationResult | null) => void;
+  onClearSelectedVideo: () => void;
+  onStartAnalysis: () => void;
+  onCompleteAnalysis: (sessionId: string) => void;
+};

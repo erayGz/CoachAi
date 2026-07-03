@@ -9,10 +9,12 @@ import { SplashScreen } from "../screens/SplashScreen";
 import { VideoUploadScreen } from "../screens/VideoUploadScreen";
 import { activeModuleLabel, appMeta } from "../data/appMeta";
 import { initialScreen, screenRegistry } from "../utils/navigation";
+import { createAnalysisSessionId } from "../utils/session";
+import { saveMockAnalysisToHistory } from "../utils/historyStorage";
 import { G } from "../utils/theme";
-import type { Screen, ScreenProps } from "../types";
+import type { AnalysisSession, AppScreenProps, Screen, VideoValidationResult } from "../types";
 
-const screenComponents: Record<Screen, ComponentType<ScreenProps>> = {
+const screenComponents: Record<Screen, ComponentType<AppScreenProps>> = {
   splash: SplashScreen,
   dashboard: DashboardScreen,
   "shooting-guide": ShootingGuideScreen,
@@ -26,13 +28,71 @@ const screenComponents: Record<Screen, ComponentType<ScreenProps>> = {
 export default function App() {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [screenKey, setScreenKey] = useState(0);
+  const [selectedVideoValidation, setSelectedVideoValidation] = useState<VideoValidationResult | null>(null);
+  const [currentAnalysisSession, setCurrentAnalysisSession] = useState<AnalysisSession | null>(null);
+
+  const selectedVideo = selectedVideoValidation?.isValid ? selectedVideoValidation.metadata : null;
 
   function go(nextScreen: Screen) {
     setScreen(nextScreen);
     setScreenKey((current) => current + 1);
   }
 
+  function handleVideoValidationChange(validation: VideoValidationResult | null) {
+    setSelectedVideoValidation(validation);
+    setCurrentAnalysisSession(null);
+  }
+
+  function clearSelectedVideo() {
+    setSelectedVideoValidation(null);
+    setCurrentAnalysisSession(null);
+  }
+
+  function startAnalysis() {
+    if (!selectedVideo) {
+      return;
+    }
+
+    setCurrentAnalysisSession({
+      id: createAnalysisSessionId(),
+      selectedVideo,
+      status: "processing",
+      createdAt: new Date().toISOString(),
+      savedToHistory: false,
+    });
+    go("processing");
+  }
+
+  function completeAnalysis(sessionId: string) {
+    setCurrentAnalysisSession((currentSession) => {
+      if (!currentSession || currentSession.id !== sessionId || currentSession.status === "completed") {
+        return currentSession;
+      }
+
+      const completedSession: AnalysisSession = {
+        ...currentSession,
+        status: "completed",
+        completedAt: new Date().toISOString(),
+        historyItemId: currentSession.id,
+        savedToHistory: true,
+      };
+
+      saveMockAnalysisToHistory(completedSession);
+      return completedSession;
+    });
+  }
+
   const ActiveScreen = screenComponents[screen];
+  const screenProps: AppScreenProps = {
+    go,
+    selectedVideo,
+    selectedVideoValidation,
+    currentAnalysisSession,
+    onVideoValidationChange: handleVideoValidationChange,
+    onClearSelectedVideo: clearSelectedVideo,
+    onStartAnalysis: startAnalysis,
+    onCompleteAnalysis: completeAnalysis,
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-start gap-5 pt-6 pb-8 px-4" style={{ background: "#030509" }}>
@@ -90,7 +150,7 @@ export default function App() {
         </div>
 
         <div key={screenKey} className="absolute inset-0 overflow-hidden" style={{ borderRadius: 50, background: G.bg }}>
-          <ActiveScreen go={go} />
+          <ActiveScreen {...screenProps} />
         </div>
 
         <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 w-28 h-1 rounded-full z-50" style={{ background: "rgba(255,255,255,0.2)" }} />

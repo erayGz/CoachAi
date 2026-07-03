@@ -1,6 +1,6 @@
 import { activeModuleLabel } from "../data/appMeta";
 import { analysisResults } from "../data/analysisResults";
-import type { AnalysisHistoryItem } from "../types";
+import type { AnalysisHistoryItem, AnalysisSession } from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
 
@@ -63,7 +63,12 @@ export function getAnalysisHistory(): AnalysisHistoryItem[] {
 }
 
 export function saveAnalysisHistoryItem(item: AnalysisHistoryItem) {
-  const nextHistory = sortNewestFirst([item, ...getAnalysisHistory()]);
+  const currentHistory = getAnalysisHistory();
+  if (currentHistory.some((historyItem) => historyItem.id === item.id)) {
+    return item;
+  }
+
+  const nextHistory = sortNewestFirst([item, ...currentHistory]);
 
   if (canUseLocalStorage()) {
     try {
@@ -84,10 +89,10 @@ export function clearAnalysisHistory() {
   window.localStorage.removeItem(ANALYSIS_HISTORY_STORAGE_KEY);
 }
 
-export function createMockAnalysisHistoryItem(date = new Date()): AnalysisHistoryItem {
+export function createMockAnalysisHistoryItem(session: AnalysisSession): AnalysisHistoryItem {
   return {
-    id: createHistoryId(),
-    createdAt: date.toISOString(),
+    id: session.historyItemId ?? session.id ?? createHistoryId(),
+    createdAt: session.completedAt ?? new Date().toISOString(),
     moduleName: activeModuleLabel,
     drillName: "Shooting Analysis",
     overallScore: analysisResults.overallScore,
@@ -99,8 +104,8 @@ export function createMockAnalysisHistoryItem(date = new Date()): AnalysisHistor
   };
 }
 
-export function saveMockAnalysisToHistory() {
-  return saveAnalysisHistoryItem(createMockAnalysisHistoryItem());
+export function saveMockAnalysisToHistory(session: AnalysisSession) {
+  return saveAnalysisHistoryItem(createMockAnalysisHistoryItem(session));
 }
 
 export function formatHistoryDateTime(createdAt: string) {

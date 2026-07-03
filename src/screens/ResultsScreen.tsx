@@ -1,14 +1,18 @@
 import { useState, type ReactNode } from "react";
-import { Activity, AlertTriangle, Check, Info, Target, Zap } from "lucide-react";
+import { Activity, AlertTriangle, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { Chip, FieldGrid, ScoreRing, SubScoreCard, TrainingDrillCard } from "../components";
 import { analysisResults, technicalBreakdown } from "../data/analysisResults";
 import { trainingDrills } from "../data/trainingDrills";
 import { G } from "../utils/theme";
-import type { ScreenProps } from "../types";
+import type { AppScreenProps } from "../types";
 
-export function ResultsScreen({ go }: ScreenProps) {
+export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   const [warning, setWarning] = useState(false);
   const videoQuality = warning ? analysisResults.warningVideoQuality : analysisResults.videoQuality;
+
+  if (currentAnalysisSession?.status !== "completed") {
+    return <NoResultState go={go} />;
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -169,6 +173,37 @@ export function ResultsScreen({ go }: ScreenProps) {
             }}
           >
             Try Again
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NoResultState({ go }: { go: (screen: "video-upload") => void }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex-1 flex items-center justify-center px-6">
+        <div className="rounded-2xl p-5 text-center" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+            <Upload size={20} color={G.green} />
+          </div>
+          <h1 className="text-[22px] font-black uppercase mt-4" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
+            No Result Yet
+          </h1>
+          <p className="text-[13px] font-semibold mt-2 leading-relaxed" style={{ color: G.whiteDim }}>
+            No analysis result yet. Upload a shooting video to get started.
+          </p>
+          <button
+            onClick={() => go("video-upload")}
+            className="mt-4 px-4 py-2.5 rounded-xl text-[12px] font-black tracking-wide uppercase transition-all active:scale-[0.97]"
+            style={{
+              background: "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)",
+              color: G.bg,
+              fontFamily: "'Barlow Condensed', sans-serif",
+            }}
+          >
+            Back to Upload
           </button>
         </div>
       </div>
