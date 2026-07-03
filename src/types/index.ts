@@ -51,3 +51,29 @@ export type VideoRule = {
   title: string;
   detail: string;
 };
+
+export type SelectedVideoMetadata = {
+  fileName: string;
+  fileSizeMb: number;
+  durationSeconds: number;
+};
+
+export type VideoValidationError =
+  | "not-video"
+  | "duration-unavailable"
+  | "too-short"
+  | "too-long";
+
+export type VideoValidationResult =
+  | {
+      isValid: true;
+      metadata: SelectedVideoMetadata;
+      error: null;
+      message: null;
+    }
+  | {
+      isValid: false;
+      metadata: SelectedVideoMetadata | null;
+      error: VideoValidationError;
+      message: string;
+    };

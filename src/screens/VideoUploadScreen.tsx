@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { AlertTriangle, Camera, Check, Upload } from "lucide-react";
 import { FieldGrid, Header } from "../components";
+import { formatVideoDuration, formatVideoSize, validateShootingVideo } from "../utils/video";
 import { G } from "../utils/theme";
-import type { ScreenProps } from "../types";
+import type { ScreenProps, VideoValidationResult } from "../types";
 
 const checklist = [
   "Full body visible throughout",
@@ -13,35 +14,87 @@ const checklist = [
 ];
 
 export function VideoUploadScreen({ go }: ScreenProps) {
-  const [uploaded, setUploaded] = useState(false);
-  const [errorType, setErrorType] = useState<null | "long" | "short">(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [validation, setValidation] = useState<VideoValidationResult | null>(null);
+  const [isReadingVideo, setIsReadingVideo] = useState(false);
+
+  const metadata = validation?.metadata ?? null;
+  const isValidVideo = validation?.isValid ?? false;
+
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    setIsReadingVideo(true);
+    const result = await validateShootingVideo(file);
+    setValidation(result);
+    setIsReadingVideo(false);
+  }
+
+  function openGalleryPicker() {
+    galleryInputRef.current?.click();
+  }
+
+  function openCameraPicker() {
+    cameraInputRef.current?.click();
+  }
+
+  function analyzeVideo() {
+    if (isValidVideo) {
+      go("processing");
+    }
+  }
 
   return (
     <div className="flex flex-col h-full">
       <Header title="Upload Video" sub="Shooting drill - 5 shots" onBack={() => go("shooting-guide")} />
       <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-4" style={{ scrollbarWidth: "none" }}>
+        <input ref={galleryInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
+        <input ref={cameraInputRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={handleFileChange} />
+
         <div
-          onClick={() => {
-            setUploaded(!uploaded);
-            setErrorType(null);
-          }}
+          onClick={openGalleryPicker}
           className="relative rounded-2xl flex flex-col items-center justify-center gap-3 cursor-pointer transition-all active:scale-[0.98]"
           style={{
             height: 188,
-            background: uploaded ? `${G.green}08` : G.card,
-            border: `2px dashed ${uploaded ? G.green : G.border}`,
+            background: isValidVideo ? `${G.green}08` : G.card,
+            border: `2px dashed ${isValidVideo ? G.green : validation?.message ? `${G.red}55` : G.border}`,
             borderRadius: 20,
           }}
         >
-          <FieldGrid opacity={uploaded ? 0.06 : 0.03} />
+          <FieldGrid opacity={isValidVideo ? 0.06 : 0.03} />
           <div className="relative text-center flex flex-col items-center gap-2">
-            {uploaded ? (
+            {isReadingVideo ? (
+              <>
+                <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: G.card2 }}>
+                  <Upload size={24} color={G.green} />
+                </div>
+                <p className="text-[13px] font-bold" style={{ color: G.green }}>Reading video...</p>
+                <p className="text-[11px]" style={{ color: G.muted }}>Checking duration and file metadata</p>
+              </>
+            ) : metadata ? (
               <>
                 <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: G.greenDim }}>
-                  <Check size={26} color={G.green} strokeWidth={2.5} />
+                  {isValidVideo ? (
+                    <Check size={26} color={G.green} strokeWidth={2.5} />
+                  ) : (
+                    <AlertTriangle size={24} color={G.red} />
+                  )}
                 </div>
-                <p className="text-[13px] font-bold" style={{ color: G.green }}>Video ready</p>
-                <p className="text-[11px]" style={{ color: G.muted }}>shooting_drill.mp4&nbsp;&nbsp;·&nbsp;&nbsp;18 sec&nbsp;&nbsp;·&nbsp;&nbsp;94 MB</p>
+                <p className="text-[13px] font-bold" style={{ color: isValidVideo ? G.green : G.red }}>
+                  {isValidVideo ? "Video ready" : "Video selected"}
+                </p>
+                <p className="text-[11px] max-w-[270px] truncate" title={metadata.fileName} style={{ color: G.whiteDim }}>
+                  {metadata.fileName}
+                </p>
+                <p className="text-[11px]" style={{ color: G.muted }}>
+                  {formatVideoDuration(metadata.durationSeconds)}&nbsp;&nbsp;·&nbsp;&nbsp;{formatVideoSize(metadata.fileSizeMb)}
+                </p>
               </>
             ) : (
               <>
@@ -49,7 +102,7 @@ export function VideoUploadScreen({ go }: ScreenProps) {
                   <Upload size={24} color={G.muted} />
                 </div>
                 <p className="text-[13px] font-semibold" style={{ color: G.white }}>Tap to select video</p>
-                <p className="text-[11px]" style={{ color: G.muted }}>MP4 or MOV · 10-25 seconds</p>
+                <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 10-25 seconds</p>
               </>
             )}
           </div>
@@ -62,7 +115,7 @@ export function VideoUploadScreen({ go }: ScreenProps) {
           ].map(({ icon: Icon, label }) => (
             <button
               key={label}
-              onClick={() => setUploaded(true)}
+              onClick={label === "Camera" ? openCameraPicker : openGalleryPicker}
               className="py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
               style={{ background: G.card, border: `1px solid ${G.border}` }}
             >
@@ -81,44 +134,30 @@ export function VideoUploadScreen({ go }: ScreenProps) {
               <div
                 className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
                 style={{
-                  background: uploaded ? G.greenDim : G.card2,
-                  border: `1.5px solid ${uploaded ? G.green : G.border}`,
+                  background: isValidVideo ? G.greenDim : G.card2,
+                  border: `1.5px solid ${isValidVideo ? G.green : G.border}`,
                 }}
               >
-                {uploaded && <Check size={8} color={G.green} strokeWidth={3} />}
+                {isValidVideo && <Check size={8} color={G.green} strokeWidth={3} />}
               </div>
-              <span className="text-[12px]" style={{ color: uploaded ? "#C4F5D4" : G.muted, fontFamily: "'DM Sans', sans-serif" }}>
+              <span className="text-[12px]" style={{ color: isValidVideo ? "#C4F5D4" : G.muted, fontFamily: "'DM Sans', sans-serif" }}>
                 {item}
               </span>
             </div>
           ))}
         </div>
 
-        <div className="space-y-2">
-          {errorType === "long" && (
-            <UploadError title="Video too long" detail="Please upload a video between 10 and 25 seconds. Your video is 38 seconds." />
-          )}
-          {errorType === "short" && (
-            <UploadError title="Video too short" detail="Your video is only 6 seconds. We need at least 10 seconds to detect 5 shots." />
-          )}
-          <div className="flex gap-2">
-            <button onClick={() => setErrorType("long")} className="flex-1 py-2 rounded-lg text-[10px] font-bold tracking-wide transition-all" style={{ background: G.card2, color: G.muted, border: `1px solid ${G.border}` }}>
-              Preview: Too Long
-            </button>
-            <button onClick={() => setErrorType("short")} className="flex-1 py-2 rounded-lg text-[10px] font-bold tracking-wide transition-all" style={{ background: G.card2, color: G.muted, border: `1px solid ${G.border}` }}>
-              Preview: Too Short
-            </button>
-          </div>
-        </div>
+        {validation?.message && <UploadError title="Upload issue" detail={validation.message} />}
 
         <button
-          onClick={() => go("processing")}
+          disabled={!isValidVideo}
+          onClick={analyzeVideo}
           className="w-full py-[17px] rounded-2xl font-black text-[16px] tracking-[0.1em] uppercase transition-all active:scale-[0.97]"
           style={{
-            background: uploaded ? "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)" : G.card2,
-            color: uploaded ? G.bg : G.muted,
+            background: isValidVideo ? "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)" : G.card2,
+            color: isValidVideo ? G.bg : G.muted,
             fontFamily: "'Barlow Condensed', sans-serif",
-            boxShadow: uploaded ? `0 6px 28px ${G.green}40` : "none",
+            boxShadow: isValidVideo ? `0 6px 28px ${G.green}40` : "none",
           }}
         >
           Analyze Video

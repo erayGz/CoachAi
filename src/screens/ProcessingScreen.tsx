@@ -5,31 +5,42 @@ import { G } from "../utils/theme";
 import type { ScreenProps } from "../types";
 
 const processingSteps = [
-  "Detecting player body position",
-  "Locating ball and goal target",
-  "Checking plant foot alignment",
-  "Measuring follow-through arc",
-  "Scoring shot accuracy",
-  "Generating technique feedback",
+  "Detecting body movement",
+  "Checking plant foot position",
+  "Analyzing follow-through",
+  "Measuring shot accuracy",
+  "Generating AI coach feedback",
 ];
+
+const ANALYSIS_DURATION_MS = 2400;
+const RESULT_DELAY_MS = 300;
 
 export function ProcessingScreen({ go }: ScreenProps) {
   const [progress, setProgress] = useState(0);
   const step = Math.min(Math.floor((progress / 100) * processingSteps.length), processingSteps.length - 1);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((current) => {
-        if (current >= 100) {
-          clearInterval(timer);
-          setTimeout(() => go("results"), 500);
-          return 100;
-        }
-        return current + 1.6;
-      });
-    }, 70);
+    const startedAt = Date.now();
+    let resultTimer: number | undefined;
 
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt;
+      const nextProgress = Math.min(100, (elapsed / ANALYSIS_DURATION_MS) * 100);
+
+      setProgress(nextProgress);
+
+      if (nextProgress >= 100) {
+        window.clearInterval(timer);
+        resultTimer = window.setTimeout(() => go("results"), RESULT_DELAY_MS);
+      }
+    }, 50);
+
+    return () => {
+      window.clearInterval(timer);
+      if (resultTimer) {
+        window.clearTimeout(resultTimer);
+      }
+    };
   }, [go]);
 
   return (
@@ -65,12 +76,12 @@ export function ProcessingScreen({ go }: ScreenProps) {
         <h2 className="text-[28px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
           Processing Video
         </h2>
-        <p className="text-[11px] mt-1" style={{ color: G.muted }}>Usually 15-30 seconds</p>
+        <p className="text-[11px] mt-1" style={{ color: G.muted }}>Usually 2-3 seconds</p>
       </div>
 
       <div className="w-full rounded-2xl p-5 space-y-3" style={{ background: G.card, border: `1px solid ${G.border}` }}>
         {processingSteps.map((item, index) => {
-          const done = index < step;
+          const done = progress >= 100 || index < step;
           const active = index === step;
           return (
             <div key={item} className="flex items-center gap-3">
