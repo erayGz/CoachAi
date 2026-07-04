@@ -36,7 +36,7 @@ export function HistoryScreen({ go }: ScreenProps) {
             History
           </h1>
           <p className="text-[10px] mt-0.5" style={{ color: G.muted }}>
-            Saved locally on this device for MVP testing.
+            Saved on this device.
           </p>
         </div>
       </div>

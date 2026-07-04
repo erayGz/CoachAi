@@ -97,7 +97,12 @@ export function DashboardScreen({ go }: ScreenProps) {
             <div className="space-y-2">
               {recentSessions.length > 0 ? (
                 recentSessions.map((item, index) => (
-                  <RecentSessionCard key={item.id} item={item} delta={getSessionDelta(historyItems, index)} />
+                  <RecentSessionCard
+                    key={item.id}
+                    item={item}
+                    delta={getSessionDelta(historyItems, index)}
+                    onOpen={() => go("history")}
+                  />
                 ))
               ) : (
                 <div
@@ -157,10 +162,23 @@ function getDashboardStats(items: AnalysisHistoryItem[]): StatItem[] {
   ];
 }
 
-function RecentSessionCard({ item, delta }: { item: AnalysisHistoryItem; delta: number | null }) {
+function RecentSessionCard({
+  item,
+  delta,
+  onOpen,
+}: {
+  item: AnalysisHistoryItem;
+  delta: number | null;
+  onOpen: () => void;
+}) {
+  const formattedDate = formatHistoryDateTime(item.createdAt);
+
   return (
-    <div
-      className="coachai-dashboard-recent-card flex items-center gap-3 rounded-xl px-4 py-3"
+    <button
+      type="button"
+      aria-label={`Open history for ${item.drillName} from ${formattedDate}`}
+      onClick={onOpen}
+      className="coachai-dashboard-recent-card w-full flex items-center gap-3 rounded-xl px-4 py-3 text-left transition-all active:scale-[0.98]"
       style={{ background: G.card, border: `1px solid ${G.border}` }}
     >
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: G.greenDim }}>
@@ -181,11 +199,11 @@ function RecentSessionCard({ item, delta }: { item: AnalysisHistoryItem; delta: 
           )}
         </div>
         <div className="text-[11px] truncate" style={{ color: G.muted }}>
-          {item.drillName} - {formatHistoryDateTime(item.createdAt)}
+          {item.drillName} - {formattedDate}
         </div>
       </div>
       <ChevronRight size={14} color={G.muted} />
-    </div>
+    </button>
   );
 }
 

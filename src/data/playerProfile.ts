@@ -25,7 +25,7 @@ export const playerProfileFields: ProfileField[] = [
 ];
 
 export const privacyConsentItems = [
-  "Uploaded videos stay mocked in this MVP prototype.",
-  "Delete Uploaded Videos clears local demo data only.",
-  "Real AI analysis and cloud storage are not enabled yet.",
+  "Uploaded videos stay on this device in this preview.",
+  "Video management controls will be available in future versions.",
+  "Advanced AI analysis will be available in future versions.",
 ];

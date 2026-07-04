@@ -134,7 +134,7 @@ export function VideoUploadScreen({
                 <p className="text-[13px] font-semibold" style={{ color: G.white }}>Tap to select video</p>
                 <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 10-25 seconds</p>
                 <p className="text-[10px] max-w-[240px] leading-relaxed" style={{ color: G.muted }}>
-                  Choose a short shooting clip to unlock the mocked analysis flow.
+                  Choose a short shooting clip for the AI technique analysis preview.
                 </p>
               </>
             )}
@@ -143,20 +143,23 @@ export function VideoUploadScreen({
 
         <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: Upload, label: "Gallery" },
-            { icon: Camera, label: "Camera" },
+            { icon: Upload, label: "Upload from Gallery" },
+            { icon: Camera, label: "Record or Choose Video" },
           ].map(({ icon: Icon, label }) => (
             <button
               key={label}
-              onClick={label === "Camera" ? openCameraPicker : openGalleryPicker}
-              className="py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+              onClick={label === "Record or Choose Video" ? openCameraPicker : openGalleryPicker}
+              className="py-3.5 px-2 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
               style={{ background: G.card, border: `1px solid ${G.border}` }}
             >
               <Icon size={17} color={G.green} />
-              <span className="text-[13px] font-bold" style={{ color: G.white, fontFamily: "'DM Sans', sans-serif" }}>{label}</span>
+              <span className="text-[12px] font-bold leading-tight text-center" style={{ color: G.white, fontFamily: "'DM Sans', sans-serif" }}>{label}</span>
             </button>
           ))}
         </div>
+        <p className="text-[10px] leading-relaxed -mt-2" style={{ color: G.muted }}>
+          Camera support depends on your device and browser.
+        </p>
 
         <div className="rounded-xl p-4 space-y-2.5" style={{ background: G.card, border: `1px solid ${G.border}` }}>
           <p className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: G.muted }}>

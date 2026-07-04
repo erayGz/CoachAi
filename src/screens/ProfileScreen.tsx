@@ -1,4 +1,5 @@
-import { Check, ChevronRight, Settings, Shield, Star, Trash2 } from "lucide-react";
+import { Check, ChevronRight, Database, Settings, Shield, Star, Trash2, UserRoundCheck } from "lucide-react";
+import { useState } from "react";
 import { BottomNav, FieldGrid, GlowOrb, StatCard } from "../components";
 import { activeModuleLabel, appMeta } from "../data/appMeta";
 import { playerProfile, playerProfileFields, privacyConsentItems } from "../data/playerProfile";
@@ -7,8 +8,15 @@ import { getHistorySummary } from "../utils/historyStats";
 import { G } from "../utils/theme";
 import type { ScreenProps } from "../types";
 
+const profileActionFeedback = "Coming soon in a future version.";
+
 export function ProfileScreen({ go }: ScreenProps) {
   const profileStats = getProfileStats();
+  const [actionFeedback, setActionFeedback] = useState("");
+
+  function showActionFeedback() {
+    setActionFeedback(profileActionFeedback);
+  }
 
   return (
     <div className="coachai-has-bottom-nav flex flex-col h-full">
@@ -90,25 +98,40 @@ export function ProfileScreen({ go }: ScreenProps) {
           </div>
 
           <div className="space-y-2.5">
-            <button className="w-full flex items-center gap-4 rounded-2xl px-4 py-4 transition-all active:scale-[0.98]" style={{ background: `${G.red}0E`, border: `1px solid ${G.red}22` }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${G.red}18` }}>
-                <Trash2 size={15} color={G.red} />
+            {actionFeedback && (
+              <div
+                role="status"
+                className="rounded-xl px-4 py-3 text-[12px] font-semibold"
+                style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}`, color: G.green }}
+              >
+                {actionFeedback}
               </div>
-              <div className="text-left">
-                <p className="text-[13px] font-bold" style={{ color: G.red }}>Delete Uploaded Videos</p>
-                <p className="text-[11px] mt-0.5" style={{ color: `${G.red}88` }}>Remove all stored video data from this device</p>
-              </div>
-            </button>
-            <button className="w-full flex items-center gap-4 rounded-2xl px-4 py-4 transition-all active:scale-[0.98]" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: G.card2 }}>
-                <Settings size={15} color={G.muted} />
-              </div>
-              <div className="text-left flex-1">
-                <p className="text-[13px] font-bold" style={{ color: G.white }}>Settings</p>
-                <p className="text-[11px] mt-0.5" style={{ color: G.muted }}>Notifications, privacy, account</p>
-              </div>
-              <ChevronRight size={14} color={G.muted} />
-            </button>
+            )}
+            <ProfileActionButton
+              title="Delete Uploaded Videos"
+              detail="Manage uploaded training videos"
+              icon={Trash2}
+              tone="danger"
+              onClick={showActionFeedback}
+            />
+            <ProfileActionButton
+              title="Settings"
+              detail="Notifications, privacy, account"
+              icon={Settings}
+              onClick={showActionFeedback}
+            />
+            <ProfileActionButton
+              title="Data Settings"
+              detail="Review storage and data preferences"
+              icon={Database}
+              onClick={showActionFeedback}
+            />
+            <ProfileActionButton
+              title="Parent / Guardian Consent"
+              detail="Manage youth player permissions"
+              icon={UserRoundCheck}
+              onClick={showActionFeedback}
+            />
           </div>
 
           <p className="text-center text-[10px] pt-1" style={{ color: G.muted }}>
@@ -118,6 +141,46 @@ export function ProfileScreen({ go }: ScreenProps) {
       </div>
       <BottomNav active="profile" onNav={go} />
     </div>
+  );
+}
+
+function ProfileActionButton({
+  title,
+  detail,
+  icon: Icon,
+  tone = "default",
+  onClick,
+}: {
+  title: string;
+  detail: string;
+  icon: typeof Settings;
+  tone?: "default" | "danger";
+  onClick: () => void;
+}) {
+  const isDanger = tone === "danger";
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-4 rounded-2xl px-4 py-4 transition-all active:scale-[0.98]"
+      style={{
+        background: isDanger ? `${G.red}0E` : G.card,
+        border: `1px solid ${isDanger ? `${G.red}22` : G.border}`,
+      }}
+    >
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ background: isDanger ? `${G.red}18` : G.card2 }}
+      >
+        <Icon size={15} color={isDanger ? G.red : G.muted} />
+      </div>
+      <div className="text-left flex-1">
+        <p className="text-[13px] font-bold" style={{ color: isDanger ? G.red : G.white }}>{title}</p>
+        <p className="text-[11px] mt-0.5" style={{ color: isDanger ? `${G.red}88` : G.muted }}>{detail}</p>
+      </div>
+      <ChevronRight size={14} color={isDanger ? `${G.red}AA` : G.muted} />
+    </button>
   );
 }
 
