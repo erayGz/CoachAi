@@ -7,10 +7,10 @@ import type { ScreenProps } from "../types";
 
 export function ProfileScreen({ go }: ScreenProps) {
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
+    <div className="coachai-has-bottom-nav flex flex-col h-full">
+      <div className="coachai-scroll-content flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
         <div
-          className="relative overflow-hidden px-5 pt-14 pb-7"
+          className="coachai-profile-hero relative overflow-hidden px-5 pt-14 pb-7"
           style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 100%)` }}
         >
           <FieldGrid opacity={0.04} />
@@ -43,7 +43,7 @@ export function ProfileScreen({ go }: ScreenProps) {
           </div>
         </div>
 
-        <div className="px-5 pb-6 space-y-4 mt-4">
+        <div className="px-5 space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-2.5">
             {playerProfileStats.map((stat) => <StatCard key={stat.label} {...stat} className="text-left" />)}
           </div>

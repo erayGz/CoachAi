@@ -12,7 +12,7 @@ export function BottomNav({ active, onNav }: { active: Screen; onNav: Navigate }
   ];
 
   return (
-    <div className="flex items-center justify-around py-3" style={{ background: G.card, borderTop: `1px solid ${G.border}` }}>
+    <div className="coachai-bottom-nav flex items-center justify-around pt-3" style={{ background: G.card, borderTop: `1px solid ${G.border}` }}>
       {items.map(({ id, icon: Icon, label }) => {
         const on = active === id || (id === "shooting-guide" && isShootingLabScreen(active));
         return (

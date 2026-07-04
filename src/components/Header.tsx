@@ -11,7 +11,7 @@ export function Header({
   onBack: () => void;
 }) {
   return (
-    <div className="flex items-center gap-3 px-5 pt-14 pb-4">
+    <div className="coachai-screen-header flex items-center gap-3 px-5 pt-14 pb-4">
       <button
         onClick={onBack}
         className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"

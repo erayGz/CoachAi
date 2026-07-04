@@ -6,13 +6,13 @@ import type { ScreenProps } from "../types";
 export function SplashScreen({ go }: ScreenProps) {
   return (
     <div
-      className="relative flex flex-col h-full overflow-hidden"
-      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 55%)` }}
+      className="relative flex flex-col h-full overflow-y-auto"
+      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 55%)`, scrollbarWidth: "none" }}
     >
       <FieldGrid opacity={0.05} />
       <GlowOrb top="0" right="0" size={300} opacity={0.12} />
 
-      <div className="relative flex-1 flex flex-col items-center justify-center px-7 gap-7">
+      <div className="coachai-splash-hero relative flex-1 flex flex-col items-center justify-center px-7 gap-7">
         <div
           className="relative w-20 h-20 rounded-[22px] flex items-center justify-center"
           style={{
@@ -65,7 +65,7 @@ export function SplashScreen({ go }: ScreenProps) {
         </div>
       </div>
 
-      <div className="relative px-6 pb-12 space-y-3">
+      <div className="coachai-splash-actions relative px-6 pb-12 space-y-3">
         <button
           onClick={() => go("dashboard")}
           className="w-full py-[17px] rounded-2xl font-black text-[16px] tracking-[0.12em] uppercase transition-all active:scale-[0.97]"

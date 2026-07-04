@@ -18,7 +18,7 @@ export function ShootingGuideScreen({ go }: ScreenProps) {
   return (
     <div className="flex flex-col h-full">
       <Header title="Recording Guide" sub="Read carefully before you record" onBack={() => go("dashboard")} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-3" style={{ scrollbarWidth: "none" }}>
+      <div className="coachai-scroll-content flex-1 overflow-y-auto px-5 space-y-3" style={{ scrollbarWidth: "none" }}>
         <div className="relative rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}`, height: 180 }}>
           <FieldGrid opacity={0.07} />
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet">

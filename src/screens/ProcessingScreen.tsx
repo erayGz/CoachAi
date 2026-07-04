@@ -75,8 +75,8 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center h-full px-6 gap-7"
-      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 60%)` }}
+      className="coachai-scroll-content relative flex flex-col items-center justify-center h-full px-6 gap-7 overflow-y-auto"
+      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 60%)`, scrollbarWidth: "none" }}
     >
       <FieldGrid opacity={0.04} />
       <GlowOrb top="0" right="0" size={280} opacity={0.09} />
@@ -169,8 +169,8 @@ function ProcessingGate({
 }) {
   return (
     <div
-      className="relative flex flex-col items-center justify-center h-full px-6 gap-5 text-center"
-      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 60%)` }}
+      className="coachai-scroll-content relative flex flex-col items-center justify-center h-full px-6 gap-5 text-center overflow-y-auto"
+      style={{ background: `linear-gradient(165deg, #0B1430 0%, ${G.bg} 60%)`, scrollbarWidth: "none" }}
     >
       <FieldGrid opacity={0.04} />
       <GlowOrb top="0" right="0" size={240} opacity={0.08} />

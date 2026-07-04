@@ -62,7 +62,7 @@ export function VideoUploadScreen({
   return (
     <div className="flex flex-col h-full">
       <Header title="Upload Video" sub="Shooting drill - 5 shots" onBack={() => go("shooting-guide")} />
-      <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-4" style={{ scrollbarWidth: "none" }}>
+      <div className="coachai-scroll-content flex-1 overflow-y-auto px-5 space-y-4" style={{ scrollbarWidth: "none" }}>
         <input ref={galleryInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
         <input ref={cameraInputRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={handleFileChange} />
 

@@ -30,8 +30,8 @@ export function HistoryScreen({ go }: ScreenProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-5 pt-14 pb-4 flex items-end justify-between gap-3">
+    <div className="coachai-has-bottom-nav flex flex-col h-full">
+      <div className="coachai-history-header px-5 pt-14 pb-4 flex items-end justify-between gap-3">
         <div>
           <p className="text-[10px] tracking-[0.18em] uppercase" style={{ color: G.green }}>History Progress</p>
           <h1 className="text-[28px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
@@ -41,21 +41,9 @@ export function HistoryScreen({ go }: ScreenProps) {
             Saved locally on this device for MVP testing.
           </p>
         </div>
-        <button
-          onClick={handleClearHistory}
-          disabled={!hasHistory}
-          className="px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wide uppercase transition-all"
-          style={{
-            background: hasHistory ? G.card2 : G.card2,
-            color: hasHistory ? G.red : G.muted,
-            border: `1px solid ${hasHistory ? `${G.red}30` : G.border}`,
-          }}
-        >
-          Dev: Clear Local History
-        </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-4" style={{ scrollbarWidth: "none" }}>
+      <div className="coachai-scroll-content flex-1 overflow-y-auto px-5 space-y-4" style={{ scrollbarWidth: "none" }}>
         {hasHistory ? (
           <>
             <div className="grid grid-cols-2 gap-2">
@@ -132,6 +120,7 @@ export function HistoryScreen({ go }: ScreenProps) {
         ) : (
           <EmptyHistoryState go={go} />
         )}
+        <DevClearHistoryAction hasHistory={hasHistory} onClear={handleClearHistory} />
       </div>
       <BottomNav active="history" onNav={go} />
     </div>
@@ -157,6 +146,26 @@ function EmptyHistoryState({ go }: ScreenProps) {
         }}
       >
         Start First Analysis
+      </button>
+    </div>
+  );
+}
+
+function DevClearHistoryAction({ hasHistory, onClear }: { hasHistory: boolean; onClear: () => void }) {
+  return (
+    <div className="flex justify-center pt-1">
+      <button
+        onClick={onClear}
+        disabled={!hasHistory}
+        className="px-3 py-1.5 rounded-full text-[9px] font-bold tracking-wide uppercase transition-all"
+        style={{
+          background: "transparent",
+          color: hasHistory ? `${G.red}AA` : `${G.muted}80`,
+          border: `1px solid ${hasHistory ? `${G.red}22` : `${G.border}`}`,
+          fontFamily: "'JetBrains Mono', monospace",
+        }}
+      >
+        Dev: Clear Local History
       </button>
     </div>
   );
