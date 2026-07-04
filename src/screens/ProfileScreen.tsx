@@ -1,11 +1,15 @@
 import { Check, ChevronRight, Settings, Shield, Star, Trash2 } from "lucide-react";
 import { BottomNav, FieldGrid, GlowOrb, StatCard } from "../components";
 import { activeModuleLabel, appMeta } from "../data/appMeta";
-import { playerProfile, playerProfileFields, playerProfileStats, privacyConsentItems } from "../data/playerProfile";
+import { playerProfile, playerProfileFields, privacyConsentItems } from "../data/playerProfile";
+import { getAnalysisHistory } from "../utils/historyStorage";
+import { getHistorySummary } from "../utils/historyStats";
 import { G } from "../utils/theme";
 import type { ScreenProps } from "../types";
 
 export function ProfileScreen({ go }: ScreenProps) {
+  const profileStats = getProfileStats();
+
   return (
     <div className="coachai-has-bottom-nav flex flex-col h-full">
       <div className="coachai-scroll-content flex-1 overflow-y-auto" style={{ scrollbarWidth: "none" }}>
@@ -45,7 +49,7 @@ export function ProfileScreen({ go }: ScreenProps) {
 
         <div className="px-5 space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-2.5">
-            {playerProfileStats.map((stat) => <StatCard key={stat.label} {...stat} className="text-left" />)}
+            {profileStats.map((stat) => <StatCard key={stat.label} {...stat} className="text-left" />)}
           </div>
 
           <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
@@ -115,4 +119,30 @@ export function ProfileScreen({ go }: ScreenProps) {
       <BottomNav active="profile" onNav={go} />
     </div>
   );
+}
+
+function getProfileStats() {
+  const summary = getHistorySummary(getAnalysisHistory());
+
+  return [
+    { label: "Total Analyses", value: summary.totalAnalyses, color: G.green },
+    {
+      label: "Best Score",
+      value: summary.bestScore ?? "--",
+      sub: summary.bestScore === null ? undefined : "/100",
+      color: G.blue,
+    },
+    {
+      label: "Average Score",
+      value: summary.averageScore ?? "--",
+      sub: summary.averageScore === null ? undefined : "/100",
+      color: G.amber,
+    },
+    {
+      label: "Latest Score",
+      value: summary.latestScore ?? "--",
+      sub: summary.latestScore === null ? undefined : "/100",
+      color: G.purple,
+    },
+  ];
 }

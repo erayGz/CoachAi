@@ -19,6 +19,7 @@ export const playerProfileFields: ProfileField[] = [
   { label: "Age Group", value: "Under-17" },
   { label: "Position", value: "Centre Forward" },
   { label: "Dominant Foot", value: "Right" },
+  { label: "Training Goal", value: "Improve shooting accuracy" },
   { label: "Training Level", value: "Intermediate" },
   { label: "Club / Academy", value: "FC Academy" },
 ];

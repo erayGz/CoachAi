@@ -3,26 +3,24 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { Upload } from "lucide-react";
 import { BottomNav, StatCard } from "../components";
 import { clearAnalysisHistory, formatHistoryDateTime, getAnalysisHistory } from "../utils/historyStorage";
+import { filterHistoryItems, getHistorySummary, historyFilters, type HistoryFilter } from "../utils/historyStats";
 import { G } from "../utils/theme";
 import type { AnalysisHistoryItem, ScreenProps } from "../types";
 
-const historyFilters = ["All", "This Week", "This Month"];
-
 export function HistoryScreen({ go }: ScreenProps) {
-  const [filter, setFilter] = useState(historyFilters[0]);
+  const [filter, setFilter] = useState<HistoryFilter>("All");
   const [historyItems, setHistoryItems] = useState<AnalysisHistoryItem[]>(() => getAnalysisHistory());
-  const hasHistory = historyItems.length > 0;
+  const hasSavedHistory = historyItems.length > 0;
+  const filteredItems = filterHistoryItems(historyItems, filter);
+  const hasFilteredHistory = filteredItems.length > 0;
+  const summary = getHistorySummary(filteredItems);
 
-  const scores = historyItems.map((item) => item.overallScore);
-  const chartData = historyItems.slice().reverse().map((item, index) => ({
+  const chartData = filteredItems.slice().reverse().map((item, index) => ({
     label: `A${index + 1}`,
     score: item.overallScore,
   }));
-  const bestScore = hasHistory ? Math.max(...scores) : 0;
-  const avgScore = hasHistory ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length) : 0;
-  const latestScore = historyItems[0]?.overallScore ?? 0;
-  const latestFocus = historyItems[0]?.mainFocus ?? "Plant Foot Position";
-  const scoreDelta = getOverallScoreDelta(historyItems);
+  const latestFocus = filteredItems[0]?.mainFocus ?? "Plant Foot Position";
+  const scoreDelta = getOverallScoreDelta(filteredItems);
 
   function handleClearHistory() {
     clearAnalysisHistory();
@@ -44,53 +42,28 @@ export function HistoryScreen({ go }: ScreenProps) {
       </div>
 
       <div className="coachai-scroll-content flex-1 overflow-y-auto px-5 space-y-4" style={{ scrollbarWidth: "none" }}>
-        {hasHistory ? (
+        {hasSavedHistory ? (
           <>
             <div className="grid grid-cols-2 gap-2">
-              <StatCard label="Latest Score" value={latestScore} color={G.green} className="rounded-xl py-3.5 px-1" />
-              <StatCard label="Best Score" value={bestScore} color={G.blue} className="rounded-xl py-3.5 px-1" />
-              <StatCard label="Average Score" value={avgScore} color={G.amber} className="rounded-xl py-3.5 px-1" />
-              <StatCard label="Total Analyses" value={historyItems.length} color={G.purple} className="rounded-xl py-3.5 px-1" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <ProgressInsightCard label="Most Improved" value="Follow-through +12" color={G.green} />
-              <ProgressInsightCard label="Needs Work" value={latestFocus} color={G.amber} />
-            </div>
-
-            <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>Score Over Time</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: G.green }}>{scoreDelta}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px]" style={{ color: G.muted }}>Needs work</p>
-                  <p className="text-[11px] font-bold mt-0.5" style={{ color: G.amber }}>{latestFocus}</p>
-                </div>
-              </div>
-              <ResponsiveContainer width="100%" height={110}>
-                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={G.green} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={G.green} stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="label" tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <YAxis domain={[30, 95]} tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
-                    dataKey="score"
-                    stroke={G.green}
-                    strokeWidth={2.5}
-                    fill="url(#sg)"
-                    dot={{ fill: G.green, strokeWidth: 0, r: 3 }}
-                    activeDot={{ r: 5, fill: G.green, stroke: G.bg, strokeWidth: 2 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              <StatCard
+                label="Latest Score"
+                value={summary.latestScore ?? "--"}
+                color={G.green}
+                className="rounded-xl py-3.5 px-1"
+              />
+              <StatCard
+                label="Best Score"
+                value={summary.bestScore ?? "--"}
+                color={G.blue}
+                className="rounded-xl py-3.5 px-1"
+              />
+              <StatCard
+                label="Average Score"
+                value={summary.averageScore ?? "--"}
+                color={G.amber}
+                className="rounded-xl py-3.5 px-1"
+              />
+              <StatCard label="Total Analyses" value={summary.totalAnalyses} color={G.purple} className="rounded-xl py-3.5 px-1" />
             </div>
 
             <div className="flex gap-2">
@@ -110,17 +83,63 @@ export function HistoryScreen({ go }: ScreenProps) {
               ))}
             </div>
 
-            <div className="space-y-2">
-              {historyItems.map((item, index) => {
-                const delta = getSessionDelta(historyItems, index);
-                return <HistoryResultCard key={item.id} item={item} delta={delta} />;
-              })}
-            </div>
+            {hasFilteredHistory ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <ProgressInsightCard label="Most Improved" value="Follow-through +12" color={G.green} />
+                  <ProgressInsightCard label="Needs Work" value={latestFocus} color={G.amber} />
+                </div>
+
+                <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>Score Over Time</p>
+                      <p className="text-[11px] mt-0.5" style={{ color: G.green }}>{scoreDelta}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px]" style={{ color: G.muted }}>Needs work</p>
+                      <p className="text-[11px] font-bold mt-0.5" style={{ color: G.amber }}>{latestFocus}</p>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={110}>
+                    <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={G.green} stopOpacity={0.25} />
+                          <stop offset="95%" stopColor={G.green} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="label" tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
+                      <YAxis domain={[30, 95]} tick={{ fill: G.muted, fontSize: 9 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area
+                        type="monotone"
+                        dataKey="score"
+                        stroke={G.green}
+                        strokeWidth={2.5}
+                        fill="url(#sg)"
+                        dot={{ fill: G.green, strokeWidth: 0, r: 3 }}
+                        activeDot={{ r: 5, fill: G.green, stroke: G.bg, strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2">
+                  {filteredItems.map((item, index) => {
+                    const delta = getSessionDelta(filteredItems, index);
+                    return <HistoryResultCard key={item.id} item={item} delta={delta} />;
+                  })}
+                </div>
+              </>
+            ) : (
+              <EmptyFilteredHistoryState />
+            )}
           </>
         ) : (
           <EmptyHistoryState go={go} />
         )}
-        <DevClearHistoryAction hasHistory={hasHistory} onClear={handleClearHistory} />
+        <DevClearHistoryAction hasHistory={hasSavedHistory} onClear={handleClearHistory} />
       </div>
       <BottomNav active="history" onNav={go} />
     </div>
@@ -147,6 +166,16 @@ function EmptyHistoryState({ go }: ScreenProps) {
       >
         Start First Analysis
       </button>
+    </div>
+  );
+}
+
+function EmptyFilteredHistoryState() {
+  return (
+    <div className="rounded-2xl p-5 text-center" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <p className="text-[13px] font-semibold leading-relaxed" style={{ color: G.whiteDim }}>
+        No analyses found for this period.
+      </p>
     </div>
   );
 }
