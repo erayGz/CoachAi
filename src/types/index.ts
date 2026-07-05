@@ -71,6 +71,7 @@ export type ShootingAnalysisResult = {
   aiCoachFeedback: string;
   recommendedTraining: TrainingDrill[];
   uploadedFile?: UploadedFileMetadata;
+  videoMetadata?: VideoMetadata;
 };
 
 export type AnalysisResult = ShootingAnalysisResult;
@@ -94,6 +95,7 @@ export type AnalysisHistoryItem = {
   videoQuality: VideoQuality;
   analysisReliability: AnalysisReliability;
   mainFocus: string;
+  videoMetadata?: VideoMetadata;
 };
 
 export type ProfileField = {
@@ -118,6 +120,15 @@ export type UploadedFileMetadata = {
   filename: string;
   contentType: string;
   fileSizeBytes: number;
+};
+
+export type VideoMetadata = {
+  durationSeconds: number;
+  fps: number;
+  width: number;
+  height: number;
+  frameCount: number;
+  sampledFrameCount: number;
 };
 
 export type AnalysisSessionStatus = "processing" | "completed";

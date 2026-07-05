@@ -67,6 +67,7 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     videoQuality: item.videoQuality as VideoQuality,
     analysisReliability: reliability,
     mainFocus: item.mainFocus,
+    videoMetadata: normalizeVideoMetadata(item.videoMetadata),
   };
 }
 
@@ -94,6 +95,34 @@ function normalizeTotalShots(detectedShots: unknown, totalShots: unknown) {
   }
 
   return 5;
+}
+
+function normalizeVideoMetadata(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const metadata = value as Record<string, unknown>;
+
+  if (
+    typeof metadata.durationSeconds !== "number" ||
+    typeof metadata.fps !== "number" ||
+    typeof metadata.width !== "number" ||
+    typeof metadata.height !== "number" ||
+    typeof metadata.frameCount !== "number" ||
+    typeof metadata.sampledFrameCount !== "number"
+  ) {
+    return undefined;
+  }
+
+  return {
+    durationSeconds: metadata.durationSeconds,
+    fps: metadata.fps,
+    width: metadata.width,
+    height: metadata.height,
+    frameCount: metadata.frameCount,
+    sampledFrameCount: metadata.sampledFrameCount,
+  };
 }
 
 function sortNewestFirst(items: AnalysisHistoryItem[]) {
@@ -169,6 +198,7 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
     videoQuality: result.videoQuality,
     analysisReliability: result.analysisReliability,
     mainFocus: result.mainFocus,
+    videoMetadata: result.videoMetadata,
   };
 }
 

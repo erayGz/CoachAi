@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 2:
+This backend is intentionally limited to Phase 3-A:
 
 - No real AI analysis
 - No authentication
@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 2:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -40,6 +40,8 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+The backend uses `opencv-python` for basic video metadata extraction.
 
 ## Run The Backend
 
@@ -115,7 +117,16 @@ The backend reads basic uploaded file metadata:
 - `contentType`
 - `fileSizeBytes`
 
-It does not save the file permanently and does not run real AI analysis yet.
+It also extracts video metadata with OpenCV:
+
+- `durationSeconds`
+- `fps`
+- `width`
+- `height`
+- `frameCount`
+- `sampledFrameCount`
+
+The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
 Example:
 
@@ -167,6 +178,14 @@ Example response shape:
     "filename": "sample-shooting-video.mp4",
     "contentType": "video/mp4",
     "fileSizeBytes": 1234567
+  },
+  "videoMetadata": {
+    "durationSeconds": 14.2,
+    "fps": 30.0,
+    "width": 1920,
+    "height": 1080,
+    "frameCount": 426,
+    "sampledFrameCount": 10
   }
 }
 ```
@@ -198,6 +217,18 @@ Examples:
 ```json
 {
   "detail": "Video file is too large. Maximum size is 100 MB."
+}
+```
+
+```json
+{
+  "detail": "Uploaded file could not be read as a valid video."
+}
+```
+
+```json
+{
+  "detail": "Video metadata extraction failed."
 }
 ```
 
@@ -236,6 +267,8 @@ Test analysis with a sample video:
 curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
 ```
+
+Expected: the response includes `videoMetadata`.
 
 Test non-video validation:
 

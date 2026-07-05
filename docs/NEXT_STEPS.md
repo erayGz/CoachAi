@@ -9,11 +9,13 @@
 
 ## Phase 3: Real Video Analysis
 
-- Add OpenCV pipeline
+- Add OpenCV metadata extraction
 - Add pose estimation
 - Add ball detection
 - Extract shooting metrics
 - Generate real scoring data
+
+Phase 3-A now covers basic OpenCV metadata extraction. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
 
 ## Phase 4: Product Features
 

@@ -36,6 +36,15 @@ class UploadedFileMetadata(BaseModel):
     fileSizeBytes: int = Field(ge=0)
 
 
+class VideoMetadata(BaseModel):
+    durationSeconds: float = Field(ge=0)
+    fps: float = Field(ge=0)
+    width: int = Field(ge=0)
+    height: int = Field(ge=0)
+    frameCount: int = Field(ge=0)
+    sampledFrameCount: int = Field(ge=0)
+
+
 class TechnicalBreakdownItem(BaseModel):
     label: ShootingAnalysisCategory
     score: int = Field(ge=0, le=100)
@@ -66,3 +75,4 @@ class ShootingAnalysisResponse(BaseModel):
     aiCoachFeedback: str
     recommendedTraining: list[TrainingPlanItem]
     uploadedFile: UploadedFileMetadata
+    videoMetadata: VideoMetadata

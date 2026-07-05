@@ -14,6 +14,7 @@ from .models import (
     TechnicalBreakdownItem,
     TrainingPlanItem,
     UploadedFileMetadata,
+    VideoMetadata,
     VideoQuality,
 )
 
@@ -265,6 +266,7 @@ def _generate_reliability(detected_shots: str) -> AnalysisReliability:
 
 def generate_mock_shooting_analysis(
     uploaded_file: UploadedFileMetadata,
+    video_metadata: VideoMetadata,
 ) -> ShootingAnalysisResponse:
     overall_score = _generate_overall_score()
     technical_breakdown = _generate_sub_scores(overall_score)
@@ -287,4 +289,5 @@ def generate_mock_shooting_analysis(
         aiCoachFeedback=FEEDBACK_BY_FOCUS[main_focus],
         recommendedTraining=TRAINING_BY_FOCUS[main_focus],
         uploadedFile=uploaded_file,
+        videoMetadata=video_metadata,
     )

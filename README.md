@@ -10,7 +10,7 @@ CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a sh
 
 ## Current Status
 
-Frontend MVP connected to a FastAPI mock backend. The backend returns dynamic mocked analysis results for local integration testing.
+Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV and returns dynamic mocked analysis results for local integration testing.
 
 ## Main Features
 
@@ -21,6 +21,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend returns dynamic mo
 - Processing flow
 - Dynamic weighted mock analysis results
 - FastAPI mock analysis API
+- OpenCV video metadata extraction
 - Results screen
 - Local history tracking
 - Profile stats from saved analyses
@@ -34,6 +35,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend returns dynamic mo
 - CSS
 - localStorage
 - FastAPI
+- OpenCV
 
 ## How To Run
 
@@ -71,7 +73,7 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, deletes the temporary file, and returns mocked scoring plus `videoMetadata`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
 ## Manual Demo Flow
 
@@ -83,7 +85,8 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - No authentication yet
 - Video is not uploaded to a server yet
 - Results are dynamically mocked by the backend for MVP testing
+- Uploaded videos are processed through temporary files and are not stored permanently
 
 ## Next Planned Phase
 
-The next planned phase is replacing the mock `/analyze/shooting` response with real video analysis.
+The next planned phase is replacing the mock scoring in `/analyze/shooting` with real video analysis.

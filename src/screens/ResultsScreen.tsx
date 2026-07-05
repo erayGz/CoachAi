@@ -2,7 +2,7 @@ import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
 import { detectedAllShots, formatDetectedShots } from "../utils/analysisResult";
 import { G } from "../utils/theme";
-import type { AnalysisLevel, AnalysisReliability, AppScreenProps, TrainingDrill, VideoQuality } from "../types";
+import type { AnalysisLevel, AnalysisReliability, AppScreenProps, TrainingDrill, VideoMetadata, VideoQuality } from "../types";
 
 export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   const result = currentAnalysisSession?.result;
@@ -60,6 +60,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             </div>
           </div>
         </div>
+
+        {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
 
         <div
           className="relative rounded-2xl p-5 overflow-hidden"
@@ -174,6 +176,35 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function VideoInfoCard({ metadata }: { metadata: VideoMetadata }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <p className="text-[10px] font-black tracking-widest uppercase mb-3" style={{ color: G.muted }}>
+        Video Info
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <VideoInfoItem label="Duration" value={`${metadata.durationSeconds.toFixed(1)} sec`} />
+        <VideoInfoItem label="Resolution" value={`${metadata.width}x${metadata.height}`} />
+        <VideoInfoItem label="FPS" value={metadata.fps.toFixed(1)} />
+        <VideoInfoItem label="Frames Sampled" value={String(metadata.sampledFrameCount)} />
+      </div>
+    </div>
+  );
+}
+
+function VideoInfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+      <p className="text-[8px] tracking-widest uppercase" style={{ color: G.muted }}>
+        {label}
+      </p>
+      <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+        {value}
+      </p>
     </div>
   );
 }

@@ -116,6 +116,17 @@ Backend endpoints:
 
 The analyze endpoint accepts only `video/*` uploads, rejects empty files, and enforces a 100 MB maximum file size. Backend validation errors use FastAPI's standard `{ "detail": "message" }` response shape.
 
+Phase 3-A adds OpenCV video metadata extraction. The backend writes the uploaded video to a temporary file, extracts metadata, and deletes the temporary file after processing. No uploaded video is stored permanently.
+
+The response includes `videoMetadata`:
+
+- `durationSeconds`
+- `fps`
+- `width`
+- `height`
+- `frameCount`
+- `sampledFrameCount`
+
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
 ```text
@@ -126,7 +137,7 @@ If the backend is stopped or unreachable, Processing falls back to the backend-n
 
 ## Mock Analysis Generation
 
-The backend currently generates dynamic mocked shooting analysis results. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
+The backend currently extracts real video metadata but still generates dynamic mocked shooting scores. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
 
 The generator:
 
@@ -137,7 +148,7 @@ The generator:
 - Generates coach feedback based on the weakest category
 - Generates recommended training suggestions for the weakest category
 
-This gives the demo realistic variation without adding real AI analysis yet.
+This gives the demo realistic variation while metadata extraction prepares the backend for later real analysis.
 
 ## localStorage History
 
