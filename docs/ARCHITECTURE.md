@@ -108,6 +108,22 @@ POST /analyze/shooting
 
 The selected video is sent as multipart form-data using the `file` field.
 
+Backend endpoints:
+
+- `GET /`
+- `GET /health`
+- `POST /analyze/shooting`
+
+The analyze endpoint accepts only `video/*` uploads, rejects empty files, and enforces a 100 MB maximum file size. Backend validation errors use FastAPI's standard `{ "detail": "message" }` response shape.
+
+The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
+
+```text
+Analysis could not be completed. {backend detail}
+```
+
+If the backend is stopped or unreachable, Processing falls back to the backend-not-running message.
+
 ## Mock Analysis Generation
 
 The backend currently generates dynamic mocked shooting analysis results. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.

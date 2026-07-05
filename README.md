@@ -65,6 +65,14 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+Backend endpoints:
+
+- `GET /`
+- `GET /health`
+- `POST /analyze/shooting`
+
+The analyze endpoint accepts `video/*` uploads up to 100 MB. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+
 ## Manual Demo Flow
 
 Splash → Dashboard → Shooting Guide → Video Upload → Processing → Results → History → Profile

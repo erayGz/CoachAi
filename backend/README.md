@@ -63,11 +63,27 @@ http://127.0.0.1:8000/docs
 
 ## Endpoints
 
+### `GET /`
+
+Returns a simple service status message.
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
+Response:
+
+```json
+{
+  "service": "coachai-backend",
+  "message": "CoachAI backend is running",
+  "docs": "/docs"
+}
+```
+
 ### `GET /health`
 
-Returns backend health status.
-
-Example:
+Returns backend health status and version.
 
 ```bash
 curl http://127.0.0.1:8000/health
@@ -78,13 +94,20 @@ Response:
 ```json
 {
   "status": "ok",
-  "service": "coachai-backend"
+  "service": "coachai-backend",
+  "version": "0.1.0"
 }
 ```
 
 ### `POST /analyze/shooting`
 
 Accepts a shooting drill video as `multipart/form-data`.
+
+Validation:
+
+- Accepted file type: `video/*`
+- Maximum file size: 100 MB
+- Empty files are rejected
 
 The backend reads basic uploaded file metadata:
 
@@ -148,6 +171,38 @@ Example response shape:
 }
 ```
 
+## Common Error Responses
+
+Errors use FastAPI's standard shape:
+
+```json
+{
+  "detail": "error message"
+}
+```
+
+Examples:
+
+```json
+{
+  "detail": "Only video files are supported."
+}
+```
+
+```json
+{
+  "detail": "Uploaded video is empty."
+}
+```
+
+```json
+{
+  "detail": "Video file is too large. Maximum size is 100 MB."
+}
+```
+
+The frontend reads `detail` when available and shows it in the Processing error state.
+
 ## Manual Verification Commands
 
 Install dependencies:
@@ -163,6 +218,12 @@ cd backend
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
+Test root:
+
+```bash
+curl http://127.0.0.1:8000/
+```
+
 Test health:
 
 ```bash
@@ -174,6 +235,13 @@ Test analysis with a sample video:
 ```bash
 curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
+```
+
+Test non-video validation:
+
+```bash
+curl -X POST http://127.0.0.1:8000/analyze/shooting \
+  -F "file=@README.md;type=text/plain"
 ```
 
 ## CORS

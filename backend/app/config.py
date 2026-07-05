@@ -1,0 +1,8 @@
+SERVICE_NAME = "coachai-backend"
+VERSION = "0.1.0"
+MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024
+READ_CHUNK_SIZE_BYTES = 1024 * 1024
+ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+]

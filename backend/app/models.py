@@ -21,6 +21,13 @@ ShootingAnalysisCategory = Literal[
 class HealthResponse(BaseModel):
     status: Literal["ok"]
     service: Literal["coachai-backend"]
+    version: str
+
+
+class RootResponse(BaseModel):
+    service: Literal["coachai-backend"]
+    message: Literal["CoachAI backend is running"]
+    docs: Literal["/docs"]
 
 
 class UploadedFileMetadata(BaseModel):

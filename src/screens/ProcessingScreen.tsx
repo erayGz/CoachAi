@@ -59,13 +59,14 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
           onCompleteAnalysis(currentAnalysisSession.id, result);
           go("results");
         }, RESULT_DELAY_MS);
-      } catch {
+      } catch (error) {
         if (cancelled) {
           return;
         }
 
         window.clearInterval(timer);
-        setAnalysisError(backendErrorMessage);
+        const detail = error instanceof Error ? error.message : "";
+        setAnalysisError(formatAnalysisError(detail));
       }
     }
 
@@ -196,6 +197,14 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
+}
+
+function formatAnalysisError(detail: string) {
+  if (!detail) {
+    return backendErrorMessage;
+  }
+
+  return `Analysis could not be completed. ${detail}`;
 }
 
 function ProcessingGate({

@@ -16,16 +16,26 @@ export async function analyzeShootingVideo(file: File): Promise<AnalysisResult> 
       body: formData,
     });
   } catch {
-    throw new Error("Analysis request failed. Please make sure the CoachAI backend is running.");
+    throw new Error("Please make sure the backend is running and try again.");
   }
 
   if (!response.ok) {
-    throw new Error(`Analysis request failed with status ${response.status}.`);
+    const detail = await readErrorDetail(response);
+    throw new Error(detail ?? "Please make sure the backend is running and try again.");
   }
 
   try {
     return (await response.json()) as AnalysisResult;
   } catch {
     throw new Error("Analysis request returned an invalid response.");
+  }
+}
+
+async function readErrorDetail(response: Response) {
+  try {
+    const body = (await response.json()) as { detail?: unknown };
+    return typeof body.detail === "string" ? body.detail : null;
+  } catch {
+    return null;
   }
 }
