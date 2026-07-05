@@ -9,10 +9,9 @@ import { SplashScreen } from "../screens/SplashScreen";
 import { VideoUploadScreen } from "../screens/VideoUploadScreen";
 import { initialScreen, screenRegistry } from "../utils/navigation";
 import { createAnalysisSessionId } from "../utils/session";
-import { saveMockAnalysisToHistory } from "../utils/historyStorage";
-import { generateMockShootingAnalysisResult } from "../utils/mockAnalysis";
+import { saveAnalysisToHistory } from "../utils/historyStorage";
 import { G } from "../utils/theme";
-import type { AnalysisSession, AppScreenProps, Screen, VideoValidationResult } from "../types";
+import type { AnalysisSession, AppScreenProps, Screen, ShootingAnalysisResult, VideoValidationResult } from "../types";
 
 const screenComponents: Record<Screen, ComponentType<AppScreenProps>> = {
   splash: SplashScreen,
@@ -65,7 +64,7 @@ export default function App() {
     go("processing");
   }
 
-  function completeAnalysis(sessionId: string) {
+  function completeAnalysis(sessionId: string, result: ShootingAnalysisResult) {
     setCurrentAnalysisSession((currentSession) => {
       if (!currentSession || currentSession.id !== sessionId || currentSession.status === "completed") {
         return currentSession;
@@ -74,13 +73,13 @@ export default function App() {
       const completedSession: AnalysisSession = {
         ...currentSession,
         status: "completed",
-        completedAt: new Date().toISOString(),
-        historyItemId: currentSession.id,
+        completedAt: result.createdAt ?? new Date().toISOString(),
+        historyItemId: result.id ?? currentSession.id,
         savedToHistory: true,
-        result: generateMockShootingAnalysisResult(),
+        result,
       };
 
-      saveMockAnalysisToHistory(completedSession);
+      saveAnalysisToHistory(completedSession);
       return completedSession;
     });
   }

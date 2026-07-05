@@ -1,4 +1,5 @@
 import { activeModuleLabel } from "../data/appMeta";
+import { getDetectedShotCounts } from "./analysisResult";
 import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, VideoQuality } from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
@@ -36,6 +37,8 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
 
   const item = value as Record<string, unknown>;
   const reliability = normalizeReliability(item.analysisReliability);
+  const detectedShots = normalizeDetectedShots(item.detectedShots);
+  const totalShots = normalizeTotalShots(item.detectedShots, item.totalShots);
 
   if (
     typeof item.id !== "string" ||
@@ -44,9 +47,9 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     typeof item.drillName !== "string" ||
     typeof item.overallScore !== "number" ||
     typeof item.level !== "string" ||
-    typeof item.detectedShots !== "number" ||
     typeof item.videoQuality !== "string" ||
     typeof item.mainFocus !== "string" ||
+    detectedShots === null ||
     !reliability
   ) {
     return null;
@@ -59,12 +62,38 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     drillName: item.drillName,
     overallScore: item.overallScore,
     level: item.level as AnalysisLevel,
-    detectedShots: item.detectedShots,
-    totalShots: typeof item.totalShots === "number" ? item.totalShots : 5,
+    detectedShots,
+    totalShots,
     videoQuality: item.videoQuality as VideoQuality,
     analysisReliability: reliability,
     mainFocus: item.mainFocus,
   };
+}
+
+function normalizeDetectedShots(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const detected = Number.parseInt(value.split("/")[0], 10);
+    return Number.isFinite(detected) ? detected : null;
+  }
+
+  return null;
+}
+
+function normalizeTotalShots(detectedShots: unknown, totalShots: unknown) {
+  if (typeof totalShots === "number") {
+    return totalShots;
+  }
+
+  if (typeof detectedShots === "string") {
+    const total = Number.parseInt(detectedShots.split("/")[1], 10);
+    return Number.isFinite(total) ? total : 5;
+  }
+
+  return 5;
 }
 
 function sortNewestFirst(items: AnalysisHistoryItem[]) {
@@ -120,30 +149,39 @@ export function clearAnalysisHistory() {
   window.localStorage.removeItem(ANALYSIS_HISTORY_STORAGE_KEY);
 }
 
-export function createMockAnalysisHistoryItem(session: AnalysisSession): AnalysisHistoryItem {
+export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHistoryItem {
   if (!session.result) {
     throw new Error("Cannot save history without a generated analysis result.");
   }
 
   const { result } = session;
+  const { detected, total } = getDetectedShotCounts(result);
 
   return {
-    id: session.historyItemId ?? session.id ?? createHistoryId(),
-    createdAt: session.completedAt ?? new Date().toISOString(),
-    moduleName: activeModuleLabel,
-    drillName: "Shooting Analysis",
+    id: result.id ?? session.historyItemId ?? session.id ?? createHistoryId(),
+    createdAt: result.createdAt ?? session.completedAt ?? new Date().toISOString(),
+    moduleName: result.moduleName ?? activeModuleLabel,
+    drillName: result.drillName ?? "Shooting Analysis",
     overallScore: result.overallScore,
     level: result.level,
-    detectedShots: result.detectedShots,
-    totalShots: result.totalShots,
+    detectedShots: detected,
+    totalShots: total,
     videoQuality: result.videoQuality,
     analysisReliability: result.analysisReliability,
     mainFocus: result.mainFocus,
   };
 }
 
+export function saveAnalysisToHistory(session: AnalysisSession) {
+  return saveAnalysisHistoryItem(createAnalysisHistoryItem(session));
+}
+
+export function createMockAnalysisHistoryItem(session: AnalysisSession): AnalysisHistoryItem {
+  return createAnalysisHistoryItem(session);
+}
+
 export function saveMockAnalysisToHistory(session: AnalysisSession) {
-  return saveAnalysisHistoryItem(createMockAnalysisHistoryItem(session));
+  return saveAnalysisToHistory(session);
 }
 
 export function formatHistoryDateTime(createdAt: string) {

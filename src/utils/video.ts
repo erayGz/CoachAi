@@ -24,6 +24,7 @@ export function createVideoMetadata(file: File, durationSeconds: number): Select
     fileName: file.name,
     fileSizeMb: file.size / (1024 * 1024),
     durationSeconds,
+    file,
   };
 }
 

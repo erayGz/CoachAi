@@ -35,6 +35,7 @@ Shared TypeScript types for screens, navigation, video validation, analysis sess
 
 Utility logic for:
 
+- API client
 - Video validation
 - Mock analysis generation
 - localStorage history
@@ -57,8 +58,8 @@ When the user taps `Analyze Video`, the app:
 
 When processing completes, the app:
 
-- Generates one analysis result for that session
-- Stores that exact result in session state
+- Sends the selected video to the FastAPI mock backend
+- Stores the backend result in session state
 - Marks the session as completed
 - Saves the result to localStorage history once
 
@@ -80,9 +81,36 @@ Validation states include:
 
 Only a valid video enables the `Analyze Video` button.
 
+## Backend Mock API
+
+The Phase 2 backend lives in `backend/` and exposes a FastAPI app.
+
+For local integration, run it on port `8000`:
+
+```bash
+cd backend
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+The frontend uses `VITE_API_BASE_URL` to find the backend:
+
+```text
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+If no environment variable is set, the frontend falls back to `http://127.0.0.1:8000`.
+
+The Processing screen calls:
+
+```text
+POST /analyze/shooting
+```
+
+The selected video is sent as multipart form-data using the `file` field.
+
 ## Mock Analysis Generation
 
-The MVP generates dynamic mocked shooting analysis results on the frontend.
+The backend currently generates dynamic mocked shooting analysis results. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
 
 The generator:
 

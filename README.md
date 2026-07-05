@@ -10,7 +10,7 @@ CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a sh
 
 ## Current Status
 
-Frontend-only MVP with dynamic mocked analysis.
+Frontend MVP connected to a FastAPI mock backend. The backend returns dynamic mocked analysis results for local integration testing.
 
 ## Main Features
 
@@ -20,6 +20,7 @@ Frontend-only MVP with dynamic mocked analysis.
 - 10-25 second duration validation
 - Processing flow
 - Dynamic weighted mock analysis results
+- FastAPI mock analysis API
 - Results screen
 - Local history tracking
 - Profile stats from saved analyses
@@ -32,6 +33,7 @@ Frontend-only MVP with dynamic mocked analysis.
 - TypeScript
 - CSS
 - localStorage
+- FastAPI
 
 ## How To Run
 
@@ -47,18 +49,33 @@ The local development server runs at:
 http://127.0.0.1:5173/
 ```
 
+The frontend reads the backend URL from:
+
+```text
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+If the variable is not set, the frontend falls back to `http://127.0.0.1:8000`.
+
+For local full-stack testing, run the backend on port `8000`:
+
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
 ## Manual Demo Flow
 
 Splash → Dashboard → Shooting Guide → Video Upload → Processing → Results → History → Profile
 
 ## Current Limitations
 
-- No backend yet
 - No real AI analysis yet
 - No authentication yet
 - Video is not uploaded to a server yet
-- Results are dynamically mocked for MVP testing
+- Results are dynamically mocked by the backend for MVP testing
 
 ## Next Planned Phase
 
-The next planned phase is a FastAPI backend with a mock `/analyze` endpoint, followed by real video analysis.
+The next planned phase is replacing the mock `/analyze/shooting` response with real video analysis.

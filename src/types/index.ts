@@ -55,10 +55,14 @@ export type ShootingAnalysisCategory =
   | "Accuracy";
 
 export type ShootingAnalysisResult = {
+  id?: string;
+  createdAt?: string;
+  moduleName?: string;
+  drillName?: string;
   overallScore: number;
   level: AnalysisLevel;
-  detectedShots: number;
-  totalShots: number;
+  detectedShots: number | string;
+  totalShots?: number;
   videoQuality: VideoQuality;
   analysisReliability: AnalysisReliability;
   mainFocus: ShootingAnalysisCategory;
@@ -66,7 +70,10 @@ export type ShootingAnalysisResult = {
   technicalBreakdown: SubScore[];
   aiCoachFeedback: string;
   recommendedTraining: TrainingDrill[];
+  uploadedFile?: UploadedFileMetadata;
 };
+
+export type AnalysisResult = ShootingAnalysisResult;
 
 export type HistoryItem = {
   score: number;
@@ -104,6 +111,13 @@ export type SelectedVideoMetadata = {
   fileName: string;
   fileSizeMb: number;
   durationSeconds: number;
+  file: File;
+};
+
+export type UploadedFileMetadata = {
+  filename: string;
+  contentType: string;
+  fileSizeBytes: number;
 };
 
 export type AnalysisSessionStatus = "processing" | "completed";
@@ -146,5 +160,5 @@ export type AppScreenProps = ScreenProps & {
   onVideoValidationChange: (validation: VideoValidationResult | null) => void;
   onClearSelectedVideo: () => void;
   onStartAnalysis: () => void;
-  onCompleteAnalysis: (sessionId: string) => void;
+  onCompleteAnalysis: (sessionId: string, result: ShootingAnalysisResult) => void;
 };

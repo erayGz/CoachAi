@@ -1,55 +1,84 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Upload } from "lucide-react";
 import { FieldGrid, GlowOrb } from "../components";
+import { analyzeShootingVideo } from "../utils/api";
 import { G } from "../utils/theme";
 import type { AppScreenProps } from "../types";
 
 const processingSteps = [
+  "Uploading video",
+  "Sending to CoachAI backend",
   "Detecting body movement",
-  "Checking plant foot position",
-  "Analyzing follow-through",
-  "Measuring shot accuracy",
-  "Generating AI coach feedback",
+  "Checking shooting technique",
+  "Generating coach feedback",
 ];
 
 const ANALYSIS_DURATION_MS = 2400;
 const RESULT_DELAY_MS = 300;
+const backendErrorMessage = "Analysis could not be completed. Please make sure the backend is running and try again.";
 
 export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, onCompleteAnalysis }: AppScreenProps) {
   const [progress, setProgress] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const [analysisError, setAnalysisError] = useState("");
   const step = Math.min(Math.floor((progress / 100) * processingSteps.length), processingSteps.length - 1);
-  const canProcess = Boolean(selectedVideo && currentAnalysisSession?.status === "processing");
+  const canProcess = Boolean(selectedVideo?.file && currentAnalysisSession?.status === "processing");
 
   useEffect(() => {
-    if (!currentAnalysisSession || !canProcess) {
+    if (!selectedVideo?.file || !currentAnalysisSession || !canProcess) {
       return;
     }
 
+    let cancelled = false;
     const startedAt = Date.now();
     let resultTimer: number | undefined;
+    setAnalysisError("");
+    setProgress(0);
 
     const timer = window.setInterval(() => {
       const elapsed = Date.now() - startedAt;
-      const nextProgress = Math.min(100, (elapsed / ANALYSIS_DURATION_MS) * 100);
-
+      const nextProgress = Math.min(92, (elapsed / ANALYSIS_DURATION_MS) * 92);
       setProgress(nextProgress);
-
-      if (nextProgress >= 100) {
-        window.clearInterval(timer);
-        resultTimer = window.setTimeout(() => {
-          onCompleteAnalysis(currentAnalysisSession.id);
-          go("results");
-        }, RESULT_DELAY_MS);
-      }
     }, 50);
 
+    async function runAnalysis() {
+      try {
+        const [result] = await Promise.all([
+          analyzeShootingVideo(selectedVideo.file),
+          new Promise((resolve) => window.setTimeout(resolve, ANALYSIS_DURATION_MS)),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        window.clearInterval(timer);
+        setProgress(100);
+
+        resultTimer = window.setTimeout(() => {
+          onCompleteAnalysis(currentAnalysisSession.id, result);
+          go("results");
+        }, RESULT_DELAY_MS);
+      } catch {
+        if (cancelled) {
+          return;
+        }
+
+        window.clearInterval(timer);
+        setAnalysisError(backendErrorMessage);
+      }
+    }
+
+    void runAnalysis();
+
     return () => {
+      cancelled = true;
       window.clearInterval(timer);
       if (resultTimer) {
         window.clearTimeout(resultTimer);
       }
     };
-  }, [canProcess, currentAnalysisSession, go, onCompleteAnalysis]);
+  }, [attempt, canProcess, currentAnalysisSession, go, onCompleteAnalysis, selectedVideo?.file]);
 
   if (!selectedVideo || !currentAnalysisSession) {
     return (
@@ -69,6 +98,19 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
         detail="This shooting analysis has finished and is ready to review."
         buttonLabel="View Results"
         onAction={() => go("results")}
+      />
+    );
+  }
+
+  if (analysisError) {
+    return (
+      <ProcessingGate
+        title="Analysis failed"
+        detail={analysisError}
+        buttonLabel="Try Again"
+        onAction={() => setAttempt((currentAttempt) => currentAttempt + 1)}
+        secondaryButtonLabel="Back to Upload"
+        onSecondaryAction={() => go("video-upload")}
       />
     );
   }
@@ -161,11 +203,15 @@ function ProcessingGate({
   detail,
   buttonLabel,
   onAction,
+  secondaryButtonLabel,
+  onSecondaryAction,
 }: {
   title: string;
   detail: string;
   buttonLabel: string;
   onAction: () => void;
+  secondaryButtonLabel?: string;
+  onSecondaryAction?: () => void;
 }) {
   return (
     <div
@@ -183,14 +229,25 @@ function ProcessingGate({
         </h2>
         <p className="text-[12px] mt-2 leading-relaxed" style={{ color: G.muted }}>{detail}</p>
       </div>
-      <button
-        onClick={onAction}
-        className="relative px-5 py-3 rounded-2xl text-[13px] font-black tracking-wide uppercase flex items-center gap-2 transition-all active:scale-[0.97]"
-        style={{ background: "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)", color: G.bg, fontFamily: "'Barlow Condensed', sans-serif" }}
-      >
-        <Upload size={14} />
-        {buttonLabel}
-      </button>
+      <div className="relative flex flex-col gap-2 w-full">
+        <button
+          onClick={onAction}
+          className="w-full px-5 py-3 rounded-2xl text-[13px] font-black tracking-wide uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.97]"
+          style={{ background: "linear-gradient(90deg, #2EE86B 0%, #1DC959 100%)", color: G.bg, fontFamily: "'Barlow Condensed', sans-serif" }}
+        >
+          <Upload size={14} />
+          {buttonLabel}
+        </button>
+        {secondaryButtonLabel && onSecondaryAction && (
+          <button
+            onClick={onSecondaryAction}
+            className="w-full px-5 py-3 rounded-2xl text-[13px] font-black tracking-wide uppercase transition-all active:scale-[0.97]"
+            style={{ background: G.card, color: G.whiteDim, border: `1px solid ${G.border}`, fontFamily: "'Barlow Condensed', sans-serif" }}
+          >
+            {secondaryButtonLabel}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

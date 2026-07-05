@@ -1,5 +1,6 @@
 import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
+import { detectedAllShots, formatDetectedShots } from "../utils/analysisResult";
 import { G } from "../utils/theme";
 import type { AnalysisLevel, AnalysisReliability, AppScreenProps, TrainingDrill, VideoQuality } from "../types";
 
@@ -9,6 +10,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   if (currentAnalysisSession?.status !== "completed" || !result) {
     return <NoResultState go={go} />;
   }
+
+  const detectedShotsLabel = formatDetectedShots(result);
 
   return (
     <div className="flex flex-col h-full">
@@ -49,8 +52,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
               <SummaryBadge label="Level" value={result.level} color={getLevelColor(result.level)} />
               <SummaryBadge
                 label="Detected Shots"
-                value={`${result.detectedShots}/${result.totalShots}`}
-                color={result.detectedShots === result.totalShots ? G.green : G.amber}
+                value={detectedShotsLabel}
+                color={detectedAllShots(result) ? G.green : G.amber}
               />
               <SummaryBadge label="Video Quality" value={result.videoQuality} color={getQualityColor(result.videoQuality)} />
               <SummaryBadge label="Reliability" value={result.analysisReliability} color={getReliabilityColor(result.analysisReliability)} />
@@ -75,7 +78,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
                 {result.mainFocus}
               </p>
               <p className="text-[12px] mt-2 leading-relaxed" style={{ color: G.whiteDim }}>
-                {result.mainFocusDescription}
+                {result.mainFocusDescription ?? "Focus on this area during your next training session."}
               </p>
             </div>
           </div>
@@ -112,7 +115,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: `1px solid ${G.greenBorder}` }}>
             <Info size={12} color={G.green} opacity={0.6} />
             <p className="text-[10px]" style={{ color: `${G.green}88` }}>
-              Based on {result.detectedShots}/{result.totalShots} shots detected - AI-generated feedback
+              Based on {detectedShotsLabel} shots detected - AI-generated feedback
             </p>
           </div>
         </div>
