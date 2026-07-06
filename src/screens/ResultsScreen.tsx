@@ -2,7 +2,16 @@ import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
 import { detectedAllShots, formatDetectedShots } from "../utils/analysisResult";
 import { G } from "../utils/theme";
-import type { AnalysisLevel, AnalysisReliability, AppScreenProps, TrainingDrill, VideoMetadata, VideoQuality } from "../types";
+import type {
+  AnalysisLevel,
+  AnalysisReliability,
+  AppScreenProps,
+  TrainingDrill,
+  VideoMetadata,
+  VideoQuality,
+  VideoQualityCheckStatus,
+  VideoQualityReport,
+} from "../types";
 
 export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   const result = currentAnalysisSession?.result;
@@ -62,6 +71,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
         </div>
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
+        {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} />}
 
         <div
           className="relative rounded-2xl p-5 overflow-hidden"
@@ -196,6 +206,74 @@ function VideoInfoCard({ metadata }: { metadata: VideoMetadata }) {
   );
 }
 
+function VideoQualityChecksCard({ report }: { report: VideoQualityReport }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Video Quality Checks
+          </p>
+          <p className="text-[10px] mt-1" style={{ color: G.whiteDim }}>
+            Metadata-based readiness check
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <QualityPill label="Quality" value={report.quality} color={getQualityColor(report.quality)} />
+          <QualityPill label="Reliability" value={report.reliability} color={getReliabilityColor(report.reliability)} />
+        </div>
+      </div>
+
+      {report.warnings.length > 0 && (
+        <div className="rounded-xl px-3 py-2 mb-3" style={{ background: `${G.amber}12`, border: `1px solid ${G.amber}28` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-1" style={{ color: G.amber }}>
+            Warnings
+          </p>
+          <div className="space-y-1">
+            {report.warnings.map((warning) => (
+              <p key={warning} className="text-[11px] leading-snug" style={{ color: G.whiteDim }}>
+                {warning}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {report.checks.map((check) => (
+          <div key={check.label} className="flex items-start gap-2.5">
+            <span
+              className="mt-1 h-2 w-2 rounded-full flex-shrink-0"
+              style={{ background: getCheckStatusColor(check.status), boxShadow: `0 0 10px ${getCheckStatusColor(check.status)}55` }}
+            />
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: G.white }}>
+                {check.label}
+              </p>
+              <p className="text-[10px] leading-snug mt-0.5" style={{ color: G.whiteDim }}>
+                {check.message}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QualityPill({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div className="rounded-lg px-2 py-1 text-right" style={{ background: `${color}10`, border: `1px solid ${color}22` }}>
+      <p className="text-[7px] tracking-widest uppercase" style={{ color: G.muted }}>
+        {label}
+      </p>
+      <p className="text-[10px] font-black leading-none mt-1" style={{ color, fontFamily: "'Barlow Condensed', sans-serif" }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 function VideoInfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
@@ -292,4 +370,10 @@ function getReliabilityColor(reliability: AnalysisReliability) {
   if (reliability === "High") return G.blue;
   if (reliability === "Good") return G.green;
   return G.amber;
+}
+
+function getCheckStatusColor(status: VideoQualityCheckStatus) {
+  if (status === "pass") return G.green;
+  if (status === "warning") return G.amber;
+  return G.red;
 }

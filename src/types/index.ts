@@ -46,6 +46,21 @@ export type VideoQuality = "Fair" | "Good" | "Excellent";
 
 export type AnalysisReliability = "Medium" | "Good" | "High";
 
+export type VideoQualityCheckStatus = "pass" | "warning" | "fail";
+
+export type VideoQualityCheck = {
+  label: string;
+  status: VideoQualityCheckStatus;
+  message: string;
+};
+
+export type VideoQualityReport = {
+  quality: VideoQuality;
+  reliability: AnalysisReliability;
+  warnings: string[];
+  checks: VideoQualityCheck[];
+};
+
 export type ShootingAnalysisCategory =
   | "Approach & Balance"
   | "Plant Foot Position"
@@ -72,6 +87,7 @@ export type ShootingAnalysisResult = {
   recommendedTraining: TrainingDrill[];
   uploadedFile?: UploadedFileMetadata;
   videoMetadata?: VideoMetadata;
+  videoQualityReport?: VideoQualityReport;
 };
 
 export type AnalysisResult = ShootingAnalysisResult;
@@ -96,6 +112,7 @@ export type AnalysisHistoryItem = {
   analysisReliability: AnalysisReliability;
   mainFocus: string;
   videoMetadata?: VideoMetadata;
+  videoQualityReport?: VideoQualityReport;
 };
 
 export type ProfileField = {

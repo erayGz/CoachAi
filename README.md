@@ -10,7 +10,7 @@ CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a sh
 
 ## Current Status
 
-Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV and returns dynamic mocked analysis results for local integration testing.
+Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, validates video duration, evaluates metadata-based video quality, and returns dynamic mocked analysis results for local integration testing.
 
 ## Main Features
 
@@ -22,6 +22,8 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Dynamic weighted mock analysis results
 - FastAPI mock analysis API
 - OpenCV video metadata extraction
+- Backend duration validation
+- Metadata-aware video quality and reliability
 - Results screen
 - Local history tracking
 - Profile stats from saved analyses
@@ -73,7 +75,7 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, deletes the temporary file, and returns mocked scoring plus `videoMetadata`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, validates that duration is 10-25 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata` and `videoQualityReport`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
 ## Manual Demo Flow
 
@@ -84,7 +86,8 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - No real AI analysis yet
 - No authentication yet
 - Video is not uploaded to a server yet
-- Results are dynamically mocked by the backend for MVP testing
+- Results scoring is dynamically mocked by the backend for MVP testing
+- Video quality and reliability are influenced by real metadata
 - Uploaded videos are processed through temporary files and are not stored permanently
 
 ## Next Planned Phase

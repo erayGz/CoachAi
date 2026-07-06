@@ -1,6 +1,6 @@
 import { activeModuleLabel } from "../data/appMeta";
 import { getDetectedShotCounts } from "./analysisResult";
-import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, VideoQuality } from "../types";
+import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, VideoQuality, VideoQualityCheckStatus } from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
 
@@ -68,6 +68,7 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     analysisReliability: reliability,
     mainFocus: item.mainFocus,
     videoMetadata: normalizeVideoMetadata(item.videoMetadata),
+    videoQualityReport: normalizeVideoQualityReport(item.videoQualityReport),
   };
 }
 
@@ -123,6 +124,65 @@ function normalizeVideoMetadata(value: unknown) {
     frameCount: metadata.frameCount,
     sampledFrameCount: metadata.sampledFrameCount,
   };
+}
+
+function normalizeVideoQualityReport(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const report = value as Record<string, unknown>;
+
+  if (
+    typeof report.quality !== "string" ||
+    typeof report.reliability !== "string" ||
+    !Array.isArray(report.warnings) ||
+    !Array.isArray(report.checks)
+  ) {
+    return undefined;
+  }
+
+  const reliability = normalizeReliability(report.reliability);
+  if (!isVideoQuality(report.quality) || !reliability) {
+    return undefined;
+  }
+
+  const checks = report.checks
+    .map((check) => normalizeVideoQualityCheck(check))
+    .filter((check): check is NonNullable<ReturnType<typeof normalizeVideoQualityCheck>> => Boolean(check));
+
+  return {
+    quality: report.quality,
+    reliability,
+    warnings: report.warnings.filter((warning): warning is string => typeof warning === "string"),
+    checks,
+  };
+}
+
+function normalizeVideoQualityCheck(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const check = value as Record<string, unknown>;
+
+  if (typeof check.label !== "string" || typeof check.message !== "string" || !isVideoQualityCheckStatus(check.status)) {
+    return null;
+  }
+
+  return {
+    label: check.label,
+    status: check.status,
+    message: check.message,
+  };
+}
+
+function isVideoQuality(value: unknown): value is VideoQuality {
+  return value === "Fair" || value === "Good" || value === "Excellent";
+}
+
+function isVideoQualityCheckStatus(value: unknown): value is VideoQualityCheckStatus {
+  return value === "pass" || value === "warning" || value === "fail";
 }
 
 function sortNewestFirst(items: AnalysisHistoryItem[]) {
@@ -199,6 +259,7 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
     analysisReliability: result.analysisReliability,
     mainFocus: result.mainFocus,
     videoMetadata: result.videoMetadata,
+    videoQualityReport: result.videoQualityReport,
   };
 }
 

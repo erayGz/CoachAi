@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 3-A:
+This backend is intentionally limited to Phase 3-B:
 
 - No real AI analysis
 - No authentication
@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 3-A:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -110,6 +110,7 @@ Validation:
 - Accepted file type: `video/*`
 - Maximum file size: 100 MB
 - Empty files are rejected
+- Duration must be 10-25 seconds
 
 The backend reads basic uploaded file metadata:
 
@@ -125,6 +126,16 @@ It also extracts video metadata with OpenCV:
 - `height`
 - `frameCount`
 - `sampledFrameCount`
+
+The backend evaluates video quality from metadata:
+
+- Resolution
+- FPS
+- Duration
+- Frame count
+- Frame sampling
+
+The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If only 4 of 5 shots are detected in the mock result, reliability is capped below `High`.
 
 The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
@@ -186,6 +197,18 @@ Example response shape:
     "height": 1080,
     "frameCount": 426,
     "sampledFrameCount": 10
+  },
+  "videoQualityReport": {
+    "quality": "Excellent",
+    "reliability": "High",
+    "warnings": [],
+    "checks": [
+      {
+        "label": "Resolution",
+        "status": "pass",
+        "message": "HD resolution or better."
+      }
+    ]
   }
 }
 ```
@@ -232,6 +255,18 @@ Examples:
 }
 ```
 
+```json
+{
+  "detail": "Video is too short. Please upload a 10-25 second shooting drill video."
+}
+```
+
+```json
+{
+  "detail": "Video is too long. Please upload a 10-25 second shooting drill video."
+}
+```
+
 The frontend reads `detail` when available and shows it in the Processing error state.
 
 ## Manual Verification Commands
@@ -268,7 +303,7 @@ curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
 ```
 
-Expected: the response includes `videoMetadata`.
+Expected: the response includes `videoMetadata` and `videoQualityReport`.
 
 Test non-video validation:
 

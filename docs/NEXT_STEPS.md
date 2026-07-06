@@ -10,12 +10,14 @@
 ## Phase 3: Real Video Analysis
 
 - Add OpenCV metadata extraction
+- Add backend duration validation and video quality checks
+- Make reliability metadata-aware
 - Add pose estimation
 - Add ball detection
 - Extract shooting metrics
 - Generate real scoring data
 
-Phase 3-A now covers basic OpenCV metadata extraction. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
+Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-based duration validation, quality checks, and reliability labels. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
 
 ## Phase 4: Product Features
 

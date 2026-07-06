@@ -7,7 +7,6 @@ from uuid import uuid4
 
 from .models import (
     AnalysisLevel,
-    AnalysisReliability,
     ShootingAnalysisCategory,
     ShootingAnalysisResponse,
     SubScoreStatus,
@@ -15,7 +14,7 @@ from .models import (
     TrainingPlanItem,
     UploadedFileMetadata,
     VideoMetadata,
-    VideoQuality,
+    VideoQualityReport,
 )
 
 T = TypeVar("T")
@@ -236,42 +235,31 @@ def _generate_detected_shots() -> str:
     return f"{detected}/5"
 
 
-def _generate_video_quality() -> VideoQuality:
-    return _pick_weighted(
-        [
-            ("Good", 58),
-            ("Fair", 24),
-            ("Excellent", 18),
-        ]
-    )
+def _adjust_report_for_detected_shots(
+    quality_report: VideoQualityReport,
+    detected_shots: str,
+) -> VideoQualityReport:
+    if detected_shots != "4/5" or quality_report.reliability != "High":
+        return quality_report
 
-
-def _generate_reliability(detected_shots: str) -> AnalysisReliability:
-    if detected_shots == "4/5":
-        return _pick_weighted(
-            [
-                ("Good", 62),
-                ("Medium", 38),
-            ]
-        )
-
-    return _pick_weighted(
-        [
-            ("Good", 54),
-            ("Medium", 24),
-            ("High", 22),
-        ]
+    return VideoQualityReport(
+        quality=quality_report.quality,
+        reliability="Good",
+        warnings=quality_report.warnings,
+        checks=quality_report.checks,
     )
 
 
 def generate_mock_shooting_analysis(
     uploaded_file: UploadedFileMetadata,
     video_metadata: VideoMetadata,
+    video_quality_report: VideoQualityReport,
 ) -> ShootingAnalysisResponse:
     overall_score = _generate_overall_score()
     technical_breakdown = _generate_sub_scores(overall_score)
     main_focus = _choose_main_focus(technical_breakdown)
     detected_shots = _generate_detected_shots()
+    adjusted_quality_report = _adjust_report_for_detected_shots(video_quality_report, detected_shots)
 
     return ShootingAnalysisResponse(
         id=str(uuid4()),
@@ -281,8 +269,8 @@ def generate_mock_shooting_analysis(
         overallScore=overall_score,
         level=_get_level(overall_score),
         detectedShots=detected_shots,
-        videoQuality=_generate_video_quality(),
-        analysisReliability=_generate_reliability(detected_shots),
+        videoQuality=adjusted_quality_report.quality,
+        analysisReliability=adjusted_quality_report.reliability,
         mainFocus=main_focus,
         mainFocusDescription=FOCUS_DESCRIPTIONS[main_focus],
         technicalBreakdown=technical_breakdown,
@@ -290,4 +278,5 @@ def generate_mock_shooting_analysis(
         recommendedTraining=TRAINING_BY_FOCUS[main_focus],
         uploadedFile=uploaded_file,
         videoMetadata=video_metadata,
+        videoQualityReport=adjusted_quality_report,
     )

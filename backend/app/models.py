@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 AnalysisLevel = Literal["Beginner", "Developing", "Intermediate", "Advanced", "Elite"]
 AnalysisReliability = Literal["Medium", "Good", "High"]
 VideoQuality = Literal["Fair", "Good", "Excellent"]
+VideoQualityCheckStatus = Literal["pass", "warning", "fail"]
 SubScoreStatus = Literal["Strong", "Good", "Needs Work"]
 ShootingAnalysisCategory = Literal[
     "Approach & Balance",
@@ -45,6 +46,19 @@ class VideoMetadata(BaseModel):
     sampledFrameCount: int = Field(ge=0)
 
 
+class VideoQualityCheck(BaseModel):
+    label: str
+    status: VideoQualityCheckStatus
+    message: str
+
+
+class VideoQualityReport(BaseModel):
+    quality: VideoQuality
+    reliability: AnalysisReliability
+    warnings: list[str]
+    checks: list[VideoQualityCheck]
+
+
 class TechnicalBreakdownItem(BaseModel):
     label: ShootingAnalysisCategory
     score: int = Field(ge=0, le=100)
@@ -76,3 +90,4 @@ class ShootingAnalysisResponse(BaseModel):
     recommendedTraining: list[TrainingPlanItem]
     uploadedFile: UploadedFileMetadata
     videoMetadata: VideoMetadata
+    videoQualityReport: VideoQualityReport

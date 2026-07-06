@@ -118,6 +118,8 @@ The analyze endpoint accepts only `video/*` uploads, rejects empty files, and en
 
 Phase 3-A adds OpenCV video metadata extraction. The backend writes the uploaded video to a temporary file, extracts metadata, and deletes the temporary file after processing. No uploaded video is stored permanently.
 
+Phase 3-B adds backend duration validation and metadata-aware quality checks. After metadata extraction, the backend enforces the same 10-25 second shooting drill range as the frontend. It also evaluates resolution, FPS, duration, frame count, and sampled frames before returning the analysis response.
+
 The response includes `videoMetadata`:
 
 - `durationSeconds`
@@ -126,6 +128,15 @@ The response includes `videoMetadata`:
 - `height`
 - `frameCount`
 - `sampledFrameCount`
+
+The response also includes `videoQualityReport`:
+
+- `quality`
+- `reliability`
+- `warnings`
+- `checks`
+
+`videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and a mock detected-shot result of `4/5` also caps reliability below `High`.
 
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
@@ -137,7 +148,7 @@ If the backend is stopped or unreachable, Processing falls back to the backend-n
 
 ## Mock Analysis Generation
 
-The backend currently extracts real video metadata but still generates dynamic mocked shooting scores. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
+The backend currently extracts real video metadata and derives quality labels from it, but still generates dynamic mocked shooting scores. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
 
 The generator:
 
@@ -161,6 +172,8 @@ Saved history is used by:
 - Profile stats
 
 Each history item includes the session id, date/time, module name, drill name, overall score, level, detected shots, video quality, analysis reliability, and main focus.
+
+If present, saved history also preserves `videoMetadata` and `videoQualityReport` for future screens or backend integration work.
 
 Duplicate history items are prevented by checking the saved item id before writing to localStorage.
 

@@ -4,10 +4,23 @@ from tempfile import NamedTemporaryFile
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import ALLOWED_ORIGINS, MAX_VIDEO_SIZE_BYTES, READ_CHUNK_SIZE_BYTES, SERVICE_NAME, VERSION
+from .config import (
+    ALLOWED_ORIGINS,
+    MAX_VIDEO_DURATION_SECONDS,
+    MAX_VIDEO_SIZE_BYTES,
+    MIN_VIDEO_DURATION_SECONDS,
+    READ_CHUNK_SIZE_BYTES,
+    SERVICE_NAME,
+    VERSION,
+)
 from .mock_analysis import generate_mock_shooting_analysis
 from .models import HealthResponse, RootResponse, ShootingAnalysisResponse, UploadedFileMetadata
-from .video_processing import InvalidVideoError, VideoMetadataExtractionError, extract_video_metadata
+from .video_processing import (
+    InvalidVideoError,
+    VideoMetadataExtractionError,
+    evaluate_video_quality,
+    extract_video_metadata,
+)
 
 
 app = FastAPI(
@@ -73,13 +86,27 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
                 detail="Video metadata extraction failed.",
             )
 
+        if video_metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Video is too short. Please upload a 10–25 second shooting drill video.",
+            )
+
+        if video_metadata.durationSeconds > MAX_VIDEO_DURATION_SECONDS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Video is too long. Please upload a 10–25 second shooting drill video.",
+            )
+
+        video_quality_report = evaluate_video_quality(video_metadata)
+
         uploaded_file = UploadedFileMetadata(
             filename=file.filename or "shooting-video",
             contentType=content_type,
             fileSizeBytes=file_size_bytes,
         )
 
-        return generate_mock_shooting_analysis(uploaded_file, video_metadata)
+        return generate_mock_shooting_analysis(uploaded_file, video_metadata, video_quality_report)
     finally:
         await file.close()
         if temp_video_path:
