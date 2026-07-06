@@ -122,7 +122,13 @@ Phase 3-B adds backend duration validation and metadata-aware quality checks. Af
 
 Phase 3-C adds sampled frame debug metadata. The backend selects up to 10 evenly spaced frames with OpenCV and returns lightweight metadata for each sampled frame. It does not save frame images, return base64 frame data, or create a frame output directory.
 
-Phase 3-D adds a MediaPipe pose detection scaffold. The backend runs pose detection on sampled frame indices when MediaPipe is available and returns lightweight detection quality metadata. It does not return full landmark coordinates, skeleton data, pose images, or frame images. If pose analysis fails, the endpoint still returns a mocked analysis and adds a warning to `videoQualityReport`.
+Phase 3-D adds a MediaPipe Tasks Pose Landmarker scaffold. The backend runs pose detection on sampled frame indices when MediaPipe and a local `.task` model are available, then returns lightweight detection quality metadata. It does not return full landmark coordinates, skeleton data, pose images, or frame images. If the model is missing or pose analysis fails, the endpoint still returns a mocked analysis with `poseAnalysis: null` and adds a warning to `videoQualityReport`.
+
+Pose Landmarker expects the local model file at:
+
+```text
+backend/models/pose_landmarker_lite.task
+```
 
 The response includes `videoMetadata`:
 
@@ -162,7 +168,7 @@ The response may also include `poseAnalysis`:
 - `poseQuality`
 - `frameSummaries`
 
-For each sampled frame, `frameSummaries` stores only whether pose was detected, landmark count, and average visibility. Poor pose detection caps `High` reliability and adds a warning. Partial pose detection also adds a warning.
+For each sampled frame, `frameSummaries` stores only whether pose was detected, landmark count, and average visibility. Poor pose detection caps `High` reliability and adds a warning. Partial pose detection also adds a warning. Real shooting technique scoring remains future work.
 
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 

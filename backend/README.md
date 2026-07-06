@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 3-D:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe pose detection scaffold, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks Pose Landmarker scaffold, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -41,7 +41,13 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-The backend uses `opencv-python` for basic video metadata extraction and `mediapipe` for the optional pose detection scaffold. If MediaPipe is unavailable in the local Python environment, `/analyze/shooting` still returns a mocked analysis and adds a pose-analysis warning.
+The backend uses `opencv-python` for basic video metadata extraction and `mediapipe` for the optional Pose Landmarker scaffold. Pose analysis requires a local MediaPipe Tasks model file:
+
+```text
+backend/models/pose_landmarker_lite.task
+```
+
+If the model is missing, MediaPipe cannot initialize, or pose analysis fails, `/analyze/shooting` still returns a mocked analysis with `poseAnalysis: null` and adds a pose-analysis warning.
 
 ## Run The Backend
 
@@ -136,7 +142,7 @@ It also extracts up to 10 evenly spaced sampled frame metadata records:
 
 Sampled frames are not saved to disk, returned as base64, or stored permanently. Only metadata is returned for future computer vision debugging.
 
-If MediaPipe is available, the backend runs pose detection on the sampled frame indices and returns lightweight `poseAnalysis` metadata:
+If MediaPipe and the local `.task` model are available, the backend runs Pose Landmarker in `VIDEO` mode on the sampled frame indices and returns lightweight `poseAnalysis` metadata:
 
 - `framesAnalyzed`
 - `framesWithPose`
@@ -145,7 +151,7 @@ If MediaPipe is available, the backend runs pose detection on the sampled frame 
 - `poseQuality`
 - `frameSummaries`
 
-The pose scaffold does not return full landmark coordinates, skeletons, base64 images, or saved pose images. It is used only to understand detection quality for future shooting analysis.
+The pose scaffold does not return full landmark coordinates, skeletons, base64 images, or saved pose images. It is used only to understand detection quality for future shooting analysis. Real shooting technique scoring is still mocked.
 
 The backend evaluates video quality from metadata:
 

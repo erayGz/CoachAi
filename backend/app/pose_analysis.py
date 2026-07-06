@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import cv2
+from pathlib import Path
 
+from .config import POSE_ANALYSIS_ENABLED, POSE_MODEL_PATH
 from .models import PoseAnalysisSummary, PoseFrameSummary, SampledFrameInfo
 
 
@@ -12,18 +14,32 @@ class PoseAnalysisError(Exception):
 def analyze_pose_from_video(
     video_path: str,
     sampled_frames: list[SampledFrameInfo],
+    model_path: Path = POSE_MODEL_PATH,
 ) -> PoseAnalysisSummary:
     if not sampled_frames:
         return _build_pose_summary([])
+
+    if not POSE_ANALYSIS_ENABLED:
+        raise PoseAnalysisError("Pose analysis is disabled.")
+
+    model_path = Path(model_path)
+    if not model_path.exists():
+        raise PoseAnalysisError("Pose Landmarker model file is missing.")
 
     try:
         import mediapipe as mp
     except ImportError as exc:
         raise PoseAnalysisError("MediaPipe is not installed.") from exc
 
-    pose_solution = getattr(getattr(mp, "solutions", None), "pose", None)
-    if pose_solution is None:
-        raise PoseAnalysisError("MediaPipe pose solution is not available.")
+    try:
+        base_options = mp.tasks.BaseOptions(model_asset_path=str(model_path))
+        pose_landmarker = mp.tasks.vision.PoseLandmarker
+        pose_landmarker_options = mp.tasks.vision.PoseLandmarkerOptions
+        running_mode = mp.tasks.vision.RunningMode.VIDEO
+        image_format = mp.ImageFormat.SRGB
+        image_class = mp.Image
+    except AttributeError as exc:
+        raise PoseAnalysisError("MediaPipe Tasks Pose Landmarker API is not available.") from exc
 
     capture = cv2.VideoCapture(video_path)
 
@@ -32,13 +48,19 @@ def analyze_pose_from_video(
             raise PoseAnalysisError("OpenCV could not open the uploaded video for pose analysis.")
 
         pose_frame_summaries: list[PoseFrameSummary] = []
+        previous_timestamp_ms = -1
 
-        with pose_solution.Pose(
-            static_image_mode=True,
-            model_complexity=1,
-            enable_segmentation=False,
+        options = pose_landmarker_options(
+            base_options=base_options,
+            running_mode=running_mode,
+            num_poses=1,
+            output_segmentation_masks=False,
             min_detection_confidence=0.5,
-        ) as pose:
+            min_pose_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+        )
+
+        with pose_landmarker.create_from_options(options) as landmarker:
             for sampled_frame in sampled_frames:
                 capture.set(cv2.CAP_PROP_POS_FRAMES, sampled_frame.frameIndex)
                 success, frame = capture.read()
@@ -48,15 +70,30 @@ def analyze_pose_from_video(
                     continue
 
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                result = pose.process(rgb_frame)
-                landmarks = result.pose_landmarks.landmark if result.pose_landmarks else []
+                image = image_class(image_format=image_format, data=rgb_frame)
+                timestamp_ms = max(
+                    previous_timestamp_ms + 1,
+                    int(round(sampled_frame.timestampSeconds * 1000)),
+                )
+                previous_timestamp_ms = timestamp_ms
+
+                result = landmarker.detect_for_video(image, timestamp_ms)
+                landmarks = result.pose_landmarks[0] if result.pose_landmarks else []
 
                 if not landmarks:
                     pose_frame_summaries.append(_empty_pose_frame(sampled_frame))
                     continue
 
-                visibility_values = [float(landmark.visibility) for landmark in landmarks]
-                visibility_average = sum(visibility_values) / len(visibility_values)
+                visibility_values = [
+                    float(landmark.visibility)
+                    for landmark in landmarks
+                    if landmark.visibility is not None
+                ]
+                visibility_average = (
+                    round(sum(visibility_values) / len(visibility_values), 3)
+                    if visibility_values
+                    else None
+                )
 
                 pose_frame_summaries.append(
                     PoseFrameSummary(
@@ -64,7 +101,7 @@ def analyze_pose_from_video(
                         timestampSeconds=sampled_frame.timestampSeconds,
                         poseDetected=True,
                         landmarkCount=len(landmarks),
-                        visibilityAverage=round(visibility_average, 3),
+                        visibilityAverage=visibility_average,
                     )
                 )
 

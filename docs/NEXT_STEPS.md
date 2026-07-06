@@ -19,7 +19,7 @@
 - Extract shooting metrics
 - Generate real scoring data
 
-Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-based duration validation, quality checks, and reliability labels. Phase 3-C adds evenly spaced sampled frame metadata without saving frame images permanently. Phase 3-D adds a pose detection scaffold for detection quality only. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
+Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-based duration validation, quality checks, and reliability labels. Phase 3-C adds evenly spaced sampled frame metadata without saving frame images permanently. Phase 3-D supports the MediaPipe Tasks Pose Landmarker scaffold with a local `.task` model for detection quality only. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
 
 ## Phase 4: Product Features
 
