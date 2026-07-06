@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from .models import (
     AnalysisLevel,
+    SampledFrameInfo,
     ShootingAnalysisCategory,
     ShootingAnalysisResponse,
     SubScoreStatus,
@@ -254,6 +255,7 @@ def generate_mock_shooting_analysis(
     uploaded_file: UploadedFileMetadata,
     video_metadata: VideoMetadata,
     video_quality_report: VideoQualityReport,
+    sampled_frames: list[SampledFrameInfo],
 ) -> ShootingAnalysisResponse:
     overall_score = _generate_overall_score()
     technical_breakdown = _generate_sub_scores(overall_score)
@@ -279,4 +281,5 @@ def generate_mock_shooting_analysis(
         uploadedFile=uploaded_file,
         videoMetadata=video_metadata,
         videoQualityReport=adjusted_quality_report,
+        sampledFrames=sampled_frames,
     )

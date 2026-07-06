@@ -88,6 +88,7 @@ export type ShootingAnalysisResult = {
   uploadedFile?: UploadedFileMetadata;
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
+  sampledFrames?: SampledFrameInfo[];
 };
 
 export type AnalysisResult = ShootingAnalysisResult;
@@ -113,6 +114,7 @@ export type AnalysisHistoryItem = {
   mainFocus: string;
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
+  sampledFrames?: SampledFrameInfo[];
 };
 
 export type ProfileField = {
@@ -146,6 +148,13 @@ export type VideoMetadata = {
   height: number;
   frameCount: number;
   sampledFrameCount: number;
+};
+
+export type SampledFrameInfo = {
+  frameIndex: number;
+  timestampSeconds: number;
+  width: number;
+  height: number;
 };
 
 export type AnalysisSessionStatus = "processing" | "completed";

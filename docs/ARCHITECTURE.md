@@ -120,6 +120,8 @@ Phase 3-A adds OpenCV video metadata extraction. The backend writes the uploaded
 
 Phase 3-B adds backend duration validation and metadata-aware quality checks. After metadata extraction, the backend enforces the same 10-25 second shooting drill range as the frontend. It also evaluates resolution, FPS, duration, frame count, and sampled frames before returning the analysis response.
 
+Phase 3-C adds sampled frame debug metadata. The backend selects up to 10 evenly spaced frames with OpenCV and returns lightweight metadata for each sampled frame. It does not save frame images, return base64 frame data, or create a frame output directory.
+
 The response includes `videoMetadata`:
 
 - `durationSeconds`
@@ -129,6 +131,8 @@ The response includes `videoMetadata`:
 - `frameCount`
 - `sampledFrameCount`
 
+`sampledFrameCount` is calculated from the actual sampled frame metadata returned in `sampledFrames`, so the count matches `sampledFrames.length`.
+
 The response also includes `videoQualityReport`:
 
 - `quality`
@@ -137,6 +141,15 @@ The response also includes `videoQualityReport`:
 - `checks`
 
 `videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and a mock detected-shot result of `4/5` also caps reliability below `High`.
+
+The response also includes `sampledFrames`:
+
+- `frameIndex`
+- `timestampSeconds`
+- `width`
+- `height`
+
+This prepares the backend for future pose estimation and ball detection without storing uploaded videos or frame images permanently.
 
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
@@ -173,7 +186,7 @@ Saved history is used by:
 
 Each history item includes the session id, date/time, module name, drill name, overall score, level, detected shots, video quality, analysis reliability, and main focus.
 
-If present, saved history also preserves `videoMetadata` and `videoQualityReport` for future screens or backend integration work.
+If present, saved history also preserves `videoMetadata`, `videoQualityReport`, and `sampledFrames` for future screens or backend integration work.
 
 Duplicate history items are prevented by checking the saved item id before writing to localStorage.
 

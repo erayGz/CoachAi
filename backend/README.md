@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 3-B:
+This backend is intentionally limited to Phase 3-C:
 
 - No real AI analysis
 - No authentication
@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 3-B:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -127,6 +127,15 @@ It also extracts video metadata with OpenCV:
 - `frameCount`
 - `sampledFrameCount`
 
+It also extracts up to 10 evenly spaced sampled frame metadata records:
+
+- `frameIndex`
+- `timestampSeconds`
+- `width`
+- `height`
+
+Sampled frames are not saved to disk, returned as base64, or stored permanently. Only metadata is returned for future computer vision debugging.
+
 The backend evaluates video quality from metadata:
 
 - Resolution
@@ -209,7 +218,15 @@ Example response shape:
         "message": "HD resolution or better."
       }
     ]
-  }
+  },
+  "sampledFrames": [
+    {
+      "frameIndex": 0,
+      "timestampSeconds": 0.0,
+      "width": 1920,
+      "height": 1080
+    }
+  ]
 }
 ```
 
@@ -303,7 +320,7 @@ curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
 ```
 
-Expected: the response includes `videoMetadata` and `videoQualityReport`.
+Expected: the response includes `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`.
 
 Test non-video validation:
 

@@ -200,7 +200,7 @@ function VideoInfoCard({ metadata }: { metadata: VideoMetadata }) {
         <VideoInfoItem label="Duration" value={`${metadata.durationSeconds.toFixed(1)} sec`} />
         <VideoInfoItem label="Resolution" value={`${metadata.width}x${metadata.height}`} />
         <VideoInfoItem label="FPS" value={metadata.fps.toFixed(1)} />
-        <VideoInfoItem label="Frames Sampled" value={String(metadata.sampledFrameCount)} />
+        <VideoInfoItem label="Sampled Frames" value={String(metadata.sampledFrameCount)} />
       </div>
     </div>
   );

@@ -46,6 +46,13 @@ class VideoMetadata(BaseModel):
     sampledFrameCount: int = Field(ge=0)
 
 
+class SampledFrameInfo(BaseModel):
+    frameIndex: int = Field(ge=0)
+    timestampSeconds: float = Field(ge=0)
+    width: int = Field(ge=0)
+    height: int = Field(ge=0)
+
+
 class VideoQualityCheck(BaseModel):
     label: str
     status: VideoQualityCheckStatus
@@ -91,3 +98,4 @@ class ShootingAnalysisResponse(BaseModel):
     uploadedFile: UploadedFileMetadata
     videoMetadata: VideoMetadata
     videoQualityReport: VideoQualityReport
+    sampledFrames: list[SampledFrameInfo]

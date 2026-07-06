@@ -69,6 +69,7 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     mainFocus: item.mainFocus,
     videoMetadata: normalizeVideoMetadata(item.videoMetadata),
     videoQualityReport: normalizeVideoQualityReport(item.videoQualityReport),
+    sampledFrames: normalizeSampledFrames(item.sampledFrames),
   };
 }
 
@@ -156,6 +157,42 @@ function normalizeVideoQualityReport(value: unknown) {
     reliability,
     warnings: report.warnings.filter((warning): warning is string => typeof warning === "string"),
     checks,
+  };
+}
+
+function normalizeSampledFrames(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const sampledFrames = value
+    .map((frame) => normalizeSampledFrame(frame))
+    .filter((frame): frame is NonNullable<ReturnType<typeof normalizeSampledFrame>> => Boolean(frame));
+
+  return sampledFrames.length > 0 ? sampledFrames : undefined;
+}
+
+function normalizeSampledFrame(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const frame = value as Record<string, unknown>;
+
+  if (
+    typeof frame.frameIndex !== "number" ||
+    typeof frame.timestampSeconds !== "number" ||
+    typeof frame.width !== "number" ||
+    typeof frame.height !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    frameIndex: frame.frameIndex,
+    timestampSeconds: frame.timestampSeconds,
+    width: frame.width,
+    height: frame.height,
   };
 }
 
@@ -260,6 +297,7 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
     mainFocus: result.mainFocus,
     videoMetadata: result.videoMetadata,
     videoQualityReport: result.videoQualityReport,
+    sampledFrames: result.sampledFrames,
   };
 }
 

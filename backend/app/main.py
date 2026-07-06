@@ -14,12 +14,13 @@ from .config import (
     VERSION,
 )
 from .mock_analysis import generate_mock_shooting_analysis
-from .models import HealthResponse, RootResponse, ShootingAnalysisResponse, UploadedFileMetadata
+from .models import HealthResponse, RootResponse, ShootingAnalysisResponse, UploadedFileMetadata, VideoMetadata
 from .video_processing import (
     InvalidVideoError,
     VideoMetadataExtractionError,
     evaluate_video_quality,
     extract_video_metadata,
+    extract_sample_frames,
 )
 
 
@@ -75,6 +76,7 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
 
         try:
             video_metadata = extract_video_metadata(temp_video_path)
+            sampled_frames = extract_sample_frames(temp_video_path)
         except InvalidVideoError:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -85,6 +87,8 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Video metadata extraction failed.",
             )
+
+        video_metadata = _with_sampled_frame_count(video_metadata, len(sampled_frames))
 
         if video_metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
             raise HTTPException(
@@ -106,7 +110,7 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
             fileSizeBytes=file_size_bytes,
         )
 
-        return generate_mock_shooting_analysis(uploaded_file, video_metadata, video_quality_report)
+        return generate_mock_shooting_analysis(uploaded_file, video_metadata, video_quality_report, sampled_frames)
     finally:
         await file.close()
         if temp_video_path:
@@ -146,3 +150,14 @@ async def _write_upload_to_temp_file(file: UploadFile) -> tuple[str, int]:
 def _get_temp_suffix(filename: str | None) -> str:
     suffix = Path(filename or "").suffix
     return suffix if suffix else ".video"
+
+
+def _with_sampled_frame_count(metadata: VideoMetadata, sampled_frame_count: int) -> VideoMetadata:
+    return VideoMetadata(
+        durationSeconds=metadata.durationSeconds,
+        fps=metadata.fps,
+        width=metadata.width,
+        height=metadata.height,
+        frameCount=metadata.frameCount,
+        sampledFrameCount=sampled_frame_count,
+    )
