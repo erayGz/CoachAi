@@ -6,6 +6,8 @@ import type {
   AnalysisLevel,
   AnalysisReliability,
   AppScreenProps,
+  PoseAnalysisSummary,
+  PoseQuality,
   TrainingDrill,
   VideoMetadata,
   VideoQuality,
@@ -72,6 +74,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
         {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} />}
+        {result.poseAnalysis && <PoseDetectionCard poseAnalysis={result.poseAnalysis} />}
 
         <div
           className="relative rounded-2xl p-5 overflow-hidden"
@@ -201,6 +204,46 @@ function VideoInfoCard({ metadata }: { metadata: VideoMetadata }) {
         <VideoInfoItem label="Resolution" value={`${metadata.width}x${metadata.height}`} />
         <VideoInfoItem label="FPS" value={metadata.fps.toFixed(1)} />
         <VideoInfoItem label="Sampled Frames" value={String(metadata.sampledFrameCount)} />
+      </div>
+    </div>
+  );
+}
+
+function PoseDetectionCard({ poseAnalysis }: { poseAnalysis: PoseAnalysisSummary }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Pose Detection
+          </p>
+          <p className="text-[10px] mt-1" style={{ color: G.whiteDim }}>
+            Sampled-frame detection quality
+          </p>
+        </div>
+        <div
+          className="rounded-lg px-2 py-1"
+          style={{
+            background: `${getPoseQualityColor(poseAnalysis.poseQuality)}10`,
+            border: `1px solid ${getPoseQualityColor(poseAnalysis.poseQuality)}22`,
+          }}
+        >
+          <p className="text-[7px] tracking-widest uppercase" style={{ color: G.muted }}>
+            Quality
+          </p>
+          <p className="text-[10px] font-black leading-none mt-1" style={{ color: getPoseQualityColor(poseAnalysis.poseQuality), fontFamily: "'Barlow Condensed', sans-serif" }}>
+            {poseAnalysis.poseQuality}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <VideoInfoItem label="Frames Analyzed" value={String(poseAnalysis.framesAnalyzed)} />
+        <VideoInfoItem label="Frames With Pose" value={String(poseAnalysis.framesWithPose)} />
+        <VideoInfoItem label="Detection Rate" value={`${Math.round(poseAnalysis.poseDetectionRate * 100)}%`} />
+        <VideoInfoItem
+          label="Avg Visibility"
+          value={poseAnalysis.averageVisibility === null ? "--" : `${Math.round(poseAnalysis.averageVisibility * 100)}%`}
+        />
       </div>
     </div>
   );
@@ -375,5 +418,11 @@ function getReliabilityColor(reliability: AnalysisReliability) {
 function getCheckStatusColor(status: VideoQualityCheckStatus) {
   if (status === "pass") return G.green;
   if (status === "warning") return G.amber;
+  return G.red;
+}
+
+function getPoseQualityColor(quality: PoseQuality) {
+  if (quality === "Good") return G.green;
+  if (quality === "Partial") return G.amber;
   return G.red;
 }

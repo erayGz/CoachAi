@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 3-C:
+This backend is intentionally limited to Phase 3-D:
 
 - No real AI analysis
 - No authentication
@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 3-C:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe pose detection scaffold, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -41,7 +41,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-The backend uses `opencv-python` for basic video metadata extraction.
+The backend uses `opencv-python` for basic video metadata extraction and `mediapipe` for the optional pose detection scaffold. If MediaPipe is unavailable in the local Python environment, `/analyze/shooting` still returns a mocked analysis and adds a pose-analysis warning.
 
 ## Run The Backend
 
@@ -136,6 +136,17 @@ It also extracts up to 10 evenly spaced sampled frame metadata records:
 
 Sampled frames are not saved to disk, returned as base64, or stored permanently. Only metadata is returned for future computer vision debugging.
 
+If MediaPipe is available, the backend runs pose detection on the sampled frame indices and returns lightweight `poseAnalysis` metadata:
+
+- `framesAnalyzed`
+- `framesWithPose`
+- `poseDetectionRate`
+- `averageVisibility`
+- `poseQuality`
+- `frameSummaries`
+
+The pose scaffold does not return full landmark coordinates, skeletons, base64 images, or saved pose images. It is used only to understand detection quality for future shooting analysis.
+
 The backend evaluates video quality from metadata:
 
 - Resolution
@@ -144,7 +155,7 @@ The backend evaluates video quality from metadata:
 - Frame count
 - Frame sampling
 
-The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If only 4 of 5 shots are detected in the mock result, reliability is capped below `High`.
+The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If only 4 of 5 shots are detected in the mock result, reliability is capped below `High`. Poor or unavailable pose detection also adds a warning and caps `High` reliability.
 
 The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
@@ -226,7 +237,23 @@ Example response shape:
       "width": 1920,
       "height": 1080
     }
-  ]
+  ],
+  "poseAnalysis": {
+    "framesAnalyzed": 10,
+    "framesWithPose": 8,
+    "poseDetectionRate": 0.8,
+    "averageVisibility": 0.72,
+    "poseQuality": "Good",
+    "frameSummaries": [
+      {
+        "frameIndex": 0,
+        "timestampSeconds": 0.0,
+        "poseDetected": true,
+        "landmarkCount": 33,
+        "visibilityAverage": 0.74
+      }
+    ]
+  }
 }
 ```
 
@@ -320,7 +347,7 @@ curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
 ```
 
-Expected: the response includes `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`.
+Expected: the response includes `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`. If MediaPipe runs successfully, the response also includes `poseAnalysis`; if pose analysis fails, the response still succeeds and includes a pose warning in `videoQualityReport.warnings`.
 
 Test non-video validation:
 

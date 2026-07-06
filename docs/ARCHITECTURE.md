@@ -122,6 +122,8 @@ Phase 3-B adds backend duration validation and metadata-aware quality checks. Af
 
 Phase 3-C adds sampled frame debug metadata. The backend selects up to 10 evenly spaced frames with OpenCV and returns lightweight metadata for each sampled frame. It does not save frame images, return base64 frame data, or create a frame output directory.
 
+Phase 3-D adds a MediaPipe pose detection scaffold. The backend runs pose detection on sampled frame indices when MediaPipe is available and returns lightweight detection quality metadata. It does not return full landmark coordinates, skeleton data, pose images, or frame images. If pose analysis fails, the endpoint still returns a mocked analysis and adds a warning to `videoQualityReport`.
+
 The response includes `videoMetadata`:
 
 - `durationSeconds`
@@ -151,6 +153,17 @@ The response also includes `sampledFrames`:
 
 This prepares the backend for future pose estimation and ball detection without storing uploaded videos or frame images permanently.
 
+The response may also include `poseAnalysis`:
+
+- `framesAnalyzed`
+- `framesWithPose`
+- `poseDetectionRate`
+- `averageVisibility`
+- `poseQuality`
+- `frameSummaries`
+
+For each sampled frame, `frameSummaries` stores only whether pose was detected, landmark count, and average visibility. Poor pose detection caps `High` reliability and adds a warning. Partial pose detection also adds a warning.
+
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
 ```text
@@ -161,7 +174,7 @@ If the backend is stopped or unreachable, Processing falls back to the backend-n
 
 ## Mock Analysis Generation
 
-The backend currently extracts real video metadata and derives quality labels from it, but still generates dynamic mocked shooting scores. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
+The backend currently extracts real video metadata, derives quality labels from it, and can measure pose detection quality, but still generates dynamic mocked shooting scores. The frontend mock generator remains available as a fallback utility for future offline/demo mode, but it is not used by default.
 
 The generator:
 
@@ -186,7 +199,7 @@ Saved history is used by:
 
 Each history item includes the session id, date/time, module name, drill name, overall score, level, detected shots, video quality, analysis reliability, and main focus.
 
-If present, saved history also preserves `videoMetadata`, `videoQualityReport`, and `sampledFrames` for future screens or backend integration work.
+If present, saved history also preserves `videoMetadata`, `videoQualityReport`, `sampledFrames`, and `poseAnalysis` for future screens or backend integration work.
 
 Duplicate history items are prevented by checking the saved item id before writing to localStorage.
 

@@ -14,7 +14,18 @@ from .config import (
     VERSION,
 )
 from .mock_analysis import generate_mock_shooting_analysis
-from .models import HealthResponse, RootResponse, ShootingAnalysisResponse, UploadedFileMetadata, VideoMetadata
+from .models import (
+    AnalysisReliability,
+    HealthResponse,
+    PoseAnalysisSummary,
+    RootResponse,
+    SampledFrameInfo,
+    ShootingAnalysisResponse,
+    UploadedFileMetadata,
+    VideoMetadata,
+    VideoQualityReport,
+)
+from .pose_analysis import PoseAnalysisError, analyze_pose_from_video
 from .video_processing import (
     InvalidVideoError,
     VideoMetadataExtractionError,
@@ -103,6 +114,12 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
             )
 
         video_quality_report = evaluate_video_quality(video_metadata)
+        pose_analysis, pose_warning = _analyze_pose_safely(temp_video_path, sampled_frames)
+        video_quality_report = _with_pose_analysis_adjustments(
+            video_quality_report,
+            pose_analysis,
+            pose_warning,
+        )
 
         uploaded_file = UploadedFileMetadata(
             filename=file.filename or "shooting-video",
@@ -110,7 +127,13 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
             fileSizeBytes=file_size_bytes,
         )
 
-        return generate_mock_shooting_analysis(uploaded_file, video_metadata, video_quality_report, sampled_frames)
+        return generate_mock_shooting_analysis(
+            uploaded_file,
+            video_metadata,
+            video_quality_report,
+            sampled_frames,
+            pose_analysis,
+        )
     finally:
         await file.close()
         if temp_video_path:
@@ -161,3 +184,48 @@ def _with_sampled_frame_count(metadata: VideoMetadata, sampled_frame_count: int)
         frameCount=metadata.frameCount,
         sampledFrameCount=sampled_frame_count,
     )
+
+
+def _analyze_pose_safely(
+    video_path: str,
+    sampled_frames: list[SampledFrameInfo],
+) -> tuple[PoseAnalysisSummary | None, str | None]:
+    try:
+        return analyze_pose_from_video(video_path, sampled_frames), None
+    except PoseAnalysisError:
+        return None, "Pose analysis could not be completed."
+
+
+def _with_pose_analysis_adjustments(
+    report: VideoQualityReport,
+    pose_analysis: PoseAnalysisSummary | None,
+    pose_warning: str | None,
+) -> VideoQualityReport:
+    warnings = list(report.warnings)
+    reliability = report.reliability
+
+    if pose_warning:
+        _append_warning(warnings, pose_warning)
+        reliability = _cap_high_reliability(reliability)
+    elif pose_analysis is not None and pose_analysis.poseQuality == "Poor":
+        _append_warning(warnings, "Player pose was not reliably detected in sampled frames.")
+        reliability = _cap_high_reliability(reliability)
+    elif pose_analysis is not None and pose_analysis.poseQuality == "Partial":
+        _append_warning(warnings, "Player pose was only detected in some sampled frames.")
+        reliability = _cap_high_reliability(reliability)
+
+    return VideoQualityReport(
+        quality=report.quality,
+        reliability=reliability,
+        warnings=warnings,
+        checks=report.checks,
+    )
+
+
+def _append_warning(warnings: list[str], warning: str) -> None:
+    if warning not in warnings:
+        warnings.append(warning)
+
+
+def _cap_high_reliability(reliability: AnalysisReliability) -> AnalysisReliability:
+    return "Good" if reliability == "High" else reliability

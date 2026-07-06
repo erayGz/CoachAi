@@ -61,6 +61,25 @@ export type VideoQualityReport = {
   checks: VideoQualityCheck[];
 };
 
+export type PoseQuality = "Good" | "Partial" | "Poor";
+
+export type PoseFrameSummary = {
+  frameIndex: number;
+  timestampSeconds: number;
+  poseDetected: boolean;
+  landmarkCount: number;
+  visibilityAverage: number | null;
+};
+
+export type PoseAnalysisSummary = {
+  framesAnalyzed: number;
+  framesWithPose: number;
+  poseDetectionRate: number;
+  averageVisibility: number | null;
+  poseQuality: PoseQuality;
+  frameSummaries: PoseFrameSummary[];
+};
+
 export type ShootingAnalysisCategory =
   | "Approach & Balance"
   | "Plant Foot Position"
@@ -89,6 +108,7 @@ export type ShootingAnalysisResult = {
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
   sampledFrames?: SampledFrameInfo[];
+  poseAnalysis?: PoseAnalysisSummary | null;
 };
 
 export type AnalysisResult = ShootingAnalysisResult;
@@ -115,6 +135,7 @@ export type AnalysisHistoryItem = {
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
   sampledFrames?: SampledFrameInfo[];
+  poseAnalysis?: PoseAnalysisSummary | null;
 };
 
 export type ProfileField = {

@@ -10,7 +10,7 @@ CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a sh
 
 ## Current Status
 
-Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, samples lightweight frame metadata for future analysis, validates video duration, evaluates metadata-based video quality, and returns dynamic mocked analysis results for local integration testing.
+Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional pose detection scaffold for detection quality, validates video duration, evaluates metadata-based video quality, and returns dynamic mocked analysis results for local integration testing.
 
 ## Main Features
 
@@ -23,6 +23,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - FastAPI mock analysis API
 - OpenCV video metadata extraction
 - Evenly spaced sample frame metadata
+- Pose detection scaffold
 - Backend duration validation
 - Metadata-aware video quality and reliability
 - Results screen
@@ -76,7 +77,7 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, samples up to 10 evenly spaced frame metadata records, validates that duration is 10-25 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, and `sampledFrames`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, samples up to 10 evenly spaced frame metadata records, runs optional MediaPipe pose detection on sampled frames, validates that duration is 10-25 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `sampledFrames`, and optional `poseAnalysis`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
 ## Manual Demo Flow
 
@@ -89,8 +90,9 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Video is not uploaded to a server yet
 - Results scoring is dynamically mocked by the backend for MVP testing
 - Video quality and reliability are influenced by real metadata
+- Pose analysis is used only for detection quality, not scoring
 - Uploaded videos are processed through temporary files and are not stored permanently
-- Sampled frames are returned as metadata only; frame images are not saved permanently
+- Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 
 ## Next Planned Phase
 

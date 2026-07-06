@@ -1,6 +1,6 @@
 import { activeModuleLabel } from "../data/appMeta";
 import { getDetectedShotCounts } from "./analysisResult";
-import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, VideoQuality, VideoQualityCheckStatus } from "../types";
+import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, PoseQuality, VideoQuality, VideoQualityCheckStatus } from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
 
@@ -70,6 +70,7 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     videoMetadata: normalizeVideoMetadata(item.videoMetadata),
     videoQualityReport: normalizeVideoQualityReport(item.videoQualityReport),
     sampledFrames: normalizeSampledFrames(item.sampledFrames),
+    poseAnalysis: normalizePoseAnalysis(item.poseAnalysis),
   };
 }
 
@@ -196,6 +197,62 @@ function normalizeSampledFrame(value: unknown) {
   };
 }
 
+function normalizePoseAnalysis(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const poseAnalysis = value as Record<string, unknown>;
+
+  if (
+    typeof poseAnalysis.framesAnalyzed !== "number" ||
+    typeof poseAnalysis.framesWithPose !== "number" ||
+    typeof poseAnalysis.poseDetectionRate !== "number" ||
+    !isPoseQuality(poseAnalysis.poseQuality) ||
+    !Array.isArray(poseAnalysis.frameSummaries)
+  ) {
+    return undefined;
+  }
+
+  const frameSummaries = poseAnalysis.frameSummaries
+    .map((frame) => normalizePoseFrameSummary(frame))
+    .filter((frame): frame is NonNullable<ReturnType<typeof normalizePoseFrameSummary>> => Boolean(frame));
+
+  return {
+    framesAnalyzed: poseAnalysis.framesAnalyzed,
+    framesWithPose: poseAnalysis.framesWithPose,
+    poseDetectionRate: poseAnalysis.poseDetectionRate,
+    averageVisibility: typeof poseAnalysis.averageVisibility === "number" ? poseAnalysis.averageVisibility : null,
+    poseQuality: poseAnalysis.poseQuality,
+    frameSummaries,
+  };
+}
+
+function normalizePoseFrameSummary(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const frame = value as Record<string, unknown>;
+
+  if (
+    typeof frame.frameIndex !== "number" ||
+    typeof frame.timestampSeconds !== "number" ||
+    typeof frame.poseDetected !== "boolean" ||
+    typeof frame.landmarkCount !== "number"
+  ) {
+    return null;
+  }
+
+  return {
+    frameIndex: frame.frameIndex,
+    timestampSeconds: frame.timestampSeconds,
+    poseDetected: frame.poseDetected,
+    landmarkCount: frame.landmarkCount,
+    visibilityAverage: typeof frame.visibilityAverage === "number" ? frame.visibilityAverage : null,
+  };
+}
+
 function normalizeVideoQualityCheck(value: unknown) {
   if (!value || typeof value !== "object") {
     return null;
@@ -220,6 +277,10 @@ function isVideoQuality(value: unknown): value is VideoQuality {
 
 function isVideoQualityCheckStatus(value: unknown): value is VideoQualityCheckStatus {
   return value === "pass" || value === "warning" || value === "fail";
+}
+
+function isPoseQuality(value: unknown): value is PoseQuality {
+  return value === "Good" || value === "Partial" || value === "Poor";
 }
 
 function sortNewestFirst(items: AnalysisHistoryItem[]) {
@@ -298,6 +359,7 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
     videoMetadata: result.videoMetadata,
     videoQualityReport: result.videoQualityReport,
     sampledFrames: result.sampledFrames,
+    poseAnalysis: result.poseAnalysis,
   };
 }
 
