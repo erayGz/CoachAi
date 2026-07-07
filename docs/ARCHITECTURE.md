@@ -69,7 +69,7 @@ This prevents duplicate saves if Processing remounts or the user navigates aroun
 
 The upload flow accepts only video files.
 
-The browser reads the video duration from the selected local file. The MVP allows videos from 10 to 25 seconds.
+The browser reads the video duration from the selected local file. The MVP allows single-shot videos from 3 to 15 seconds.
 
 Validation states include:
 
@@ -118,7 +118,7 @@ The analyze endpoint accepts only `video/*` uploads, rejects empty files, and en
 
 Phase 3-A adds OpenCV video metadata extraction. The backend writes the uploaded video to a temporary file, extracts metadata, and deletes the temporary file after processing. No uploaded video is stored permanently.
 
-Phase 3-B adds backend duration validation and metadata-aware quality checks. After metadata extraction, the backend enforces the same 10-25 second shooting drill range as the frontend. It also evaluates resolution, FPS, duration, frame count, and sampled frames before returning the analysis response.
+Phase 3-B adds backend duration validation and metadata-aware quality checks. After metadata extraction, the backend enforces the same 3-15 second single-shot range as the frontend. It also evaluates resolution, FPS, duration, frame count, and sampled frames before returning the analysis response.
 
 Phase 3-C adds sampled frame debug metadata. The backend selects up to 10 evenly spaced frames with OpenCV and returns lightweight metadata for each sampled frame. It does not save frame images, return base64 frame data, or create a frame output directory.
 
@@ -129,6 +129,8 @@ Pose Landmarker expects the local model file at:
 ```text
 backend/models/pose_landmarker_lite.task
 ```
+
+Pose model files are local-only. `.task` files under `backend/models/` are ignored by git, while `backend/models/README.md` stays in the repo to document the expected file location. Developers can run `python scripts/check_pose_model.py` from the `backend` directory to verify whether the model is present. If the model is missing, the backend gracefully skips pose analysis, returns `poseAnalysis: null`, and adds a pose warning to `videoQualityReport`.
 
 The response includes `videoMetadata`:
 
@@ -148,7 +150,7 @@ The response also includes `videoQualityReport`:
 - `warnings`
 - `checks`
 
-`videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and a mock detected-shot result of `4/5` also caps reliability below `High`.
+`videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and a mock detected-shot result of `0/1` also caps reliability below `High`.
 
 The response also includes `sampledFrames`:
 

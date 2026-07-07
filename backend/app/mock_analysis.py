@@ -233,15 +233,15 @@ def _choose_main_focus(sub_scores: list[TechnicalBreakdownItem]) -> ShootingAnal
 
 
 def _generate_detected_shots() -> str:
-    detected = _pick_weighted([(5, 82), (4, 18)])
-    return f"{detected}/5"
+    detected = _pick_weighted([(1, 92), (0, 8)])
+    return f"{detected}/1"
 
 
 def _adjust_report_for_detected_shots(
     quality_report: VideoQualityReport,
     detected_shots: str,
 ) -> VideoQualityReport:
-    if detected_shots != "4/5" or quality_report.reliability != "High":
+    if detected_shots != "0/1" or quality_report.reliability != "High":
         return quality_report
 
     return VideoQualityReport(

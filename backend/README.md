@@ -49,6 +49,44 @@ backend/models/pose_landmarker_lite.task
 
 If the model is missing, MediaPipe cannot initialize, or pose analysis fails, `/analyze/shooting` still returns a mocked analysis with `poseAnalysis: null` and adds a pose-analysis warning.
 
+## Pose Landmarker Model Setup
+
+Pose detection requires a local `.task` model file. The expected path is:
+
+```text
+backend/models/pose_landmarker_lite.task
+```
+
+The model file is ignored by git:
+
+```text
+backend/models/*.task
+```
+
+The folder README remains tracked so the expected location is documented:
+
+```text
+backend/models/README.md
+```
+
+If the model is missing, the backend still works. `/analyze/shooting` returns `poseAnalysis: null` and adds this warning to `videoQualityReport.warnings`:
+
+```text
+Pose analysis could not be completed.
+```
+
+From the `backend` directory, check whether the model is installed:
+
+```bash
+python scripts/check_pose_model.py
+```
+
+Create the model folder and print setup instructions:
+
+```bash
+python scripts/setup_pose_model.py
+```
+
 ## Run The Backend
 
 From the `backend` directory:
@@ -109,14 +147,14 @@ Response:
 
 ### `POST /analyze/shooting`
 
-Accepts a shooting drill video as `multipart/form-data`.
+Accepts a single-shot shooting video as `multipart/form-data`.
 
 Validation:
 
 - Accepted file type: `video/*`
 - Maximum file size: 100 MB
 - Empty files are rejected
-- Duration must be 10-25 seconds
+- Duration must be 3-15 seconds
 
 The backend reads basic uploaded file metadata:
 
@@ -161,7 +199,7 @@ The backend evaluates video quality from metadata:
 - Frame count
 - Frame sampling
 
-The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If only 4 of 5 shots are detected in the mock result, reliability is capped below `High`. Poor or unavailable pose detection also adds a warning and caps `High` reliability.
+The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If the single shot is not detected in the mock result, reliability is capped below `High`. Poor or unavailable pose detection also adds a warning and caps `High` reliability.
 
 The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
@@ -189,7 +227,7 @@ Example response shape:
   "drillName": "Shooting Analysis",
   "overallScore": 76,
   "level": "Intermediate",
-  "detectedShots": "5/5",
+  "detectedShots": "1/1",
   "videoQuality": "Good",
   "analysisReliability": "Good",
   "mainFocus": "Plant Foot Position",
@@ -307,13 +345,13 @@ Examples:
 
 ```json
 {
-  "detail": "Video is too short. Please upload a 10-25 second shooting drill video."
+  "detail": "Video is too short. Please upload a 3–15 second shooting video."
 }
 ```
 
 ```json
 {
-  "detail": "Video is too long. Please upload a 10-25 second shooting drill video."
+  "detail": "Video is too long. Please upload a 3–15 second shooting video."
 }
 ```
 

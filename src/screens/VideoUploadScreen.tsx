@@ -8,9 +8,9 @@ import type { AppScreenProps } from "../types";
 const checklist = [
   "Full body visible throughout",
   "Ball and goal in frame",
-  "Stationary ball before each shot",
+  "Stationary ball before the shot",
   "Fixed camera, side or 45° angle",
-  "5 shots performed",
+  "One complete shot recorded",
 ];
 
 export function VideoUploadScreen({
@@ -61,7 +61,7 @@ export function VideoUploadScreen({
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Upload Video" sub="Shooting drill - 5 shots" onBack={() => go("shooting-guide")} />
+      <Header title="Upload Video" sub="Single-shot analysis" onBack={() => go("shooting-guide")} />
       <div className="coachai-scroll-content flex-1 overflow-y-auto px-5 space-y-4" style={{ scrollbarWidth: "none" }}>
         <input ref={galleryInputRef} type="file" accept="video/*" className="hidden" onChange={handleFileChange} />
         <input ref={cameraInputRef} type="file" accept="video/*" capture="environment" className="hidden" onChange={handleFileChange} />
@@ -132,7 +132,7 @@ export function VideoUploadScreen({
                   <Upload size={24} color={G.muted} />
                 </div>
                 <p className="text-[13px] font-semibold" style={{ color: G.white }}>Tap to select video</p>
-                <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 10-25 seconds</p>
+                <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 3-15 seconds</p>
                 <p className="text-[10px] max-w-[240px] leading-relaxed" style={{ color: G.muted }}>
                   Choose a short shooting clip for the AI technique analysis preview.
                 </p>

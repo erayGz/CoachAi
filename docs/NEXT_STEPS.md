@@ -36,4 +36,5 @@ Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-b
 - First Touch Lab
 - Passing Lab
 - Football IQ
+- Multi-shot Shooting Lab
 - Other sports

@@ -4,13 +4,13 @@ import { G } from "../utils/theme";
 import type { ScreenProps, VideoRule } from "../types";
 
 const videoRules: VideoRule[] = [
-  { icon: "5️⃣", title: "5 shots in one video", detail: "Perform all 5 shots without stopping the recording." },
-  { icon: "⏸️", title: "Stationary ball before each shot", detail: "Place the ball still on the ground before approaching." },
-  { icon: "👤", title: "Full body visible", detail: "Your entire body must stay in frame throughout every shot." },
+  { icon: "1", title: "1 shot per video", detail: "Record one complete shooting action from approach to follow-through." },
+  { icon: "⏸️", title: "Stationary ball before the shot", detail: "Place the ball still on the ground before approaching." },
+  { icon: "👤", title: "Full body visible", detail: "Your entire body must stay in frame throughout the shot." },
   { icon: "⚽", title: "Ball and goal/target visible", detail: "Both the ball and the target must be in frame at all times." },
   { icon: "📷", title: "Fixed camera", detail: "Mount or prop your phone - no one should hold it during recording." },
   { icon: "📐", title: "Side or 45° angle only", detail: "Camera must face the shooting line from the side or diagonal." },
-  { icon: "⏱", title: "Video: 10-25 seconds", detail: "Longer or shorter videos cannot be processed reliably." },
+  { icon: "⏱", title: "Video: 3-15 seconds", detail: "Longer or shorter videos cannot be processed reliably." },
   { icon: "🧍", title: "One player only", detail: "No other players in the frame during the drill." },
 ];
 

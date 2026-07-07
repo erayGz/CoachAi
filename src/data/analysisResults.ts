@@ -4,7 +4,7 @@ import type { SubScore } from "../types";
 export const analysisResults = {
   overallScore: 76,
   level: "Intermediate",
-  detectedShots: 5,
+  detectedShots: 1,
   videoQuality: "Good",
   warningVideoQuality: "Fair",
   analysisReliability: 82,

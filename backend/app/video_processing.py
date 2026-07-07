@@ -214,7 +214,7 @@ def _evaluate_duration(metadata: VideoMetadata) -> VideoQualityCheck:
     return VideoQualityCheck(
         label="Duration",
         status="fail",
-        message="Duration must be between 10 and 25 seconds.",
+        message=f"Duration must be between {MIN_VIDEO_DURATION_SECONDS} and {MAX_VIDEO_DURATION_SECONDS} seconds.",
     )
 
 

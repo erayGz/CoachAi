@@ -62,7 +62,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             <div className="flex-1 grid grid-cols-2 gap-2">
               <SummaryBadge label="Level" value={result.level} color={getLevelColor(result.level)} />
               <SummaryBadge
-                label="Detected Shots"
+                label="Shot Detected"
                 value={detectedShotsLabel}
                 color={detectedAllShots(result) ? G.green : G.amber}
               />
@@ -130,7 +130,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: `1px solid ${G.greenBorder}` }}>
             <Info size={12} color={G.green} opacity={0.6} />
             <p className="text-[10px]" style={{ color: `${G.green}88` }}>
-              Based on {detectedShotsLabel} shots detected - AI-generated feedback
+              Based on {detectedShotsLabel} shot detection - AI-generated feedback
             </p>
           </div>
         </div>

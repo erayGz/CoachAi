@@ -6,7 +6,7 @@ Football · Shooting Lab
 
 ## Description
 
-CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a short football shooting drill video and returns a technical score, feedback, and training recommendations.
+CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a short single-shot football shooting video and returns a technical score, feedback, and training recommendations.
 
 ## Current Status
 
@@ -17,7 +17,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Mobile-first / PWA-style layout
 - Shooting video upload
 - Video file validation
-- 10-25 second duration validation
+- 3-15 second duration validation
 - Processing flow
 - Dynamic weighted mock analysis results
 - FastAPI mock analysis API
@@ -77,7 +77,7 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, samples up to 10 evenly spaced frame metadata records, runs optional MediaPipe Tasks Pose Landmarker detection on sampled frames when `backend/models/pose_landmarker_lite.task` exists, validates that duration is 10-25 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `sampledFrames`, and optional `poseAnalysis`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, samples up to 10 evenly spaced frame metadata records, runs optional MediaPipe Tasks Pose Landmarker detection on sampled frames when `backend/models/pose_landmarker_lite.task` exists, validates that duration is 3-15 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `sampledFrames`, and optional `poseAnalysis`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
 ## Manual Demo Flow
 

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -33,6 +34,9 @@ from .video_processing import (
     extract_video_metadata,
     extract_sample_frames,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -104,13 +108,13 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
         if video_metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Video is too short. Please upload a 10–25 second shooting drill video.",
+                detail=f"Video is too short. Please upload a {MIN_VIDEO_DURATION_SECONDS}–{MAX_VIDEO_DURATION_SECONDS} second shooting video.",
             )
 
         if video_metadata.durationSeconds > MAX_VIDEO_DURATION_SECONDS:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Video is too long. Please upload a 10–25 second shooting drill video.",
+                detail=f"Video is too long. Please upload a {MIN_VIDEO_DURATION_SECONDS}–{MAX_VIDEO_DURATION_SECONDS} second shooting video.",
             )
 
         video_quality_report = evaluate_video_quality(video_metadata)
@@ -192,7 +196,8 @@ def _analyze_pose_safely(
 ) -> tuple[PoseAnalysisSummary | None, str | None]:
     try:
         return analyze_pose_from_video(video_path, sampled_frames), None
-    except PoseAnalysisError:
+    except PoseAnalysisError as exc:
+        logger.warning("Pose analysis skipped: %s", exc)
         return None, "Pose analysis could not be completed."
 
 

@@ -1,10 +1,10 @@
 import type { SelectedVideoMetadata, VideoValidationResult } from "../types";
 
-export const MIN_SHOOTING_VIDEO_SECONDS = 10;
-export const MAX_SHOOTING_VIDEO_SECONDS = 25;
+export const MIN_SHOOTING_VIDEO_SECONDS = 3;
+export const MAX_SHOOTING_VIDEO_SECONDS = 15;
 
-const shortVideoMessage = "Video is too short. Please upload a 10–25 second shooting drill video.";
-const longVideoMessage = "Video is too long. Please upload a 10–25 second shooting drill video.";
+const shortVideoMessage = "Video is too short. Please upload a 3–15 second shooting video.";
+const longVideoMessage = "Video is too long. Please upload a 3–15 second shooting video.";
 const videoExtensionPattern = /\.(avi|m4v|mkv|mov|mp4|webm)$/i;
 
 export function isVideoFile(file: File) {

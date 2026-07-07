@@ -29,11 +29,14 @@ This makes it a strong first MVP module for testing the product experience, vali
 
 ## Video Recording Requirements
 
-- 5 shots in one video
-- Stationary ball before each shot
+- 1 shot per video
+- Record one complete shooting action from approach to follow-through
+- Stationary ball before the shot
 - Full body visible
 - Ball and target visible
 - Fixed camera
 - Side or 45-degree angle
-- 10-25 seconds
+- 3-15 seconds
 - One player only
+
+Multi-shot analysis can be added later as a future module once the single-shot flow is stable.

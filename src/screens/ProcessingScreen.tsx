@@ -85,7 +85,7 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
     return (
       <ProcessingGate
         title="No video selected"
-        detail="Upload a valid 10-25 second shooting video before running analysis."
+        detail="Upload a valid 3-15 second shooting video before running analysis."
         buttonLabel="Go to Upload"
         onAction={() => go("video-upload")}
       />

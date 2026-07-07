@@ -29,9 +29,9 @@ Confirm for each viewport:
 ## Functional Tests
 
 - Clear local history
-- Upload invalid video under 10 seconds
-- Upload invalid video over 25 seconds
-- Upload valid 10-25 second video
+- Upload invalid video under 3 seconds
+- Upload invalid video over 15 seconds
+- Upload valid 3-15 second single-shot video
 - Confirm Processing screen appears
 - Confirm result changes dynamically across repeated analyses
 - Confirm result is saved to History
@@ -49,7 +49,7 @@ Confirm for each viewport:
 5. Continue to Video Upload.
 6. Try one invalid short video and confirm the validation message.
 7. Try one invalid long video and confirm the validation message.
-8. Upload a valid 10-25 second video.
+8. Upload a valid 3-15 second single-shot video.
 9. Tap `Analyze Video`.
 10. Wait for Processing to finish.
 11. Review Results.

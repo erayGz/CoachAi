@@ -6,13 +6,13 @@ export function getDetectedShotCounts(result: Pick<ShootingAnalysisResult, "dete
 
     return {
       detected: Number.isFinite(detected) ? detected : 0,
-      total: Number.isFinite(total) ? total : result.totalShots ?? 5,
+      total: Number.isFinite(total) ? total : result.totalShots ?? 1,
     };
   }
 
   return {
     detected: result.detectedShots,
-    total: result.totalShots ?? 5,
+    total: result.totalShots ?? 1,
   };
 }
 
@@ -21,7 +21,7 @@ export function formatDetectedShots(result: Pick<ShootingAnalysisResult, "detect
     return result.detectedShots;
   }
 
-  return `${result.detectedShots}/${result.totalShots ?? 5}`;
+  return `${result.detectedShots}/${result.totalShots ?? 1}`;
 }
 
 export function detectedAllShots(result: Pick<ShootingAnalysisResult, "detectedShots" | "totalShots">) {

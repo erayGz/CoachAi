@@ -162,8 +162,8 @@ function chooseMainFocus(subScores: SubScore[]) {
 
 function generateDetectedShots() {
   return pickWeighted([
-    { value: 5, weight: 82 },
-    { value: 4, weight: 18 },
+    { value: 1, weight: 92 },
+    { value: 0, weight: 8 },
   ]);
 }
 
@@ -177,7 +177,7 @@ function generateVideoQuality(): VideoQuality {
 
 function generateReliability(detectedShots: number): AnalysisReliability {
   const options: { value: AnalysisReliability; weight: number }[] =
-    detectedShots < 5
+    detectedShots < 1
       ? [
           { value: "Good", weight: 62 },
           { value: "Medium", weight: 38 },
@@ -201,7 +201,7 @@ export function generateMockShootingAnalysisResult(): ShootingAnalysisResult {
     overallScore,
     level: getLevel(overallScore),
     detectedShots,
-    totalShots: 5,
+    totalShots: 1,
     videoQuality: generateVideoQuality(),
     analysisReliability: generateReliability(detectedShots),
     mainFocus,

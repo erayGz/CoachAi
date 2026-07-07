@@ -94,10 +94,10 @@ function normalizeTotalShots(detectedShots: unknown, totalShots: unknown) {
 
   if (typeof detectedShots === "string") {
     const total = Number.parseInt(detectedShots.split("/")[1], 10);
-    return Number.isFinite(total) ? total : 5;
+    return Number.isFinite(total) ? total : 1;
   }
 
-  return 5;
+  return 1;
 }
 
 function normalizeVideoMetadata(value: unknown) {
