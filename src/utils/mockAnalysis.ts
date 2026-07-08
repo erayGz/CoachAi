@@ -2,6 +2,7 @@ import { G } from "./theme";
 import type {
   AnalysisLevel,
   AnalysisReliability,
+  DrillValidityReport,
   ShootingAnalysisCategory,
   ShootingAnalysisResult,
   SubScore,
@@ -160,10 +161,11 @@ function chooseMainFocus(subScores: SubScore[]) {
   return subScores.reduce((lowest, current) => (current.score < lowest.score ? current : lowest)).label as ShootingAnalysisCategory;
 }
 
-function generateDetectedShots() {
+function generateShotAction() {
   return pickWeighted([
-    { value: 1, weight: 92 },
-    { value: 0, weight: 8 },
+    { value: "Likely", weight: 72 },
+    { value: "Unclear", weight: 22 },
+    { value: "Not verified", weight: 6 },
   ]);
 }
 
@@ -175,9 +177,9 @@ function generateVideoQuality(): VideoQuality {
   ]);
 }
 
-function generateReliability(detectedShots: number): AnalysisReliability {
+function generateReliability(shotAction: string): AnalysisReliability {
   const options: { value: AnalysisReliability; weight: number }[] =
-    detectedShots < 1
+    shotAction !== "Likely"
       ? [
           { value: "Good", weight: 62 },
           { value: "Medium", weight: 38 },
@@ -191,23 +193,48 @@ function generateReliability(detectedShots: number): AnalysisReliability {
   return pickWeighted(options);
 }
 
+function createFallbackDrillValidityReport(shotAction: string): DrillValidityReport {
+  const status = shotAction === "Likely" ? "Valid" : shotAction === "Unclear" ? "Unclear" : "Invalid";
+
+  return {
+    status,
+    confidence: status === "Valid" ? "High" : status === "Unclear" ? "Medium" : "Low",
+    warnings: status === "Valid" ? [] : ["Shooting action could not be confidently verified."],
+    checks: [
+      {
+        label: "Drill format",
+        status: status === "Valid" ? "pass" : status === "Unclear" ? "warning" : "fail",
+        message: "Preview check for a single-shot shooting clip.",
+      },
+    ],
+  };
+}
+
 export function generateMockShootingAnalysisResult(): ShootingAnalysisResult {
-  const overallScore = generateOverallScore();
+  const shotAction = generateShotAction();
+  const scoreCap = shotAction === "Not verified" ? 64 : shotAction === "Unclear" ? 79 : 94;
+  const overallScore = Math.min(generateOverallScore(), scoreCap);
   const technicalBreakdown = generateSubScores(overallScore);
   const mainFocus = chooseMainFocus(technicalBreakdown);
-  const detectedShots = generateDetectedShots();
+  const drillValidityReport = createFallbackDrillValidityReport(shotAction);
 
   return {
     overallScore,
     level: getLevel(overallScore),
-    detectedShots,
-    totalShots: 1,
+    detectedShots: shotAction,
     videoQuality: generateVideoQuality(),
-    analysisReliability: generateReliability(detectedShots),
+    analysisReliability: generateReliability(shotAction),
+    analysisConfidence: drillValidityReport.confidence,
     mainFocus,
     mainFocusDescription: focusDescriptions[mainFocus],
     technicalBreakdown,
-    aiCoachFeedback: feedbackByFocus[mainFocus],
+    aiCoachFeedback:
+      shotAction === "Not verified"
+        ? "CoachAI could not verify that this video contains a clear football shooting action. Please upload a single-shot clip with the full body, ball, and kicking leg visible."
+        : shotAction === "Unclear"
+          ? "CoachAI found some movement cues, but the shooting action was not clear enough for confident technical feedback."
+          : feedbackByFocus[mainFocus],
     recommendedTraining: trainingByFocus[mainFocus],
+    drillValidityReport,
   };
 }

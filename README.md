@@ -10,7 +10,7 @@ CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a sh
 
 ## Current Status
 
-Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks pose detection scaffold for detection quality, validates video duration, evaluates metadata-based video quality, and returns dynamic mocked analysis results for local integration testing.
+Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks pose detection scaffold for detection quality, validates video duration, evaluates metadata-based video quality, estimates shooting drill validity with lightweight heuristics, derives pose-aware confidence, and returns dynamic mocked analysis results for local integration testing.
 
 ## Main Features
 
@@ -22,8 +22,11 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Dynamic weighted mock analysis results
 - FastAPI mock analysis API
 - OpenCV video metadata extraction
-- Evenly spaced sample frame metadata
+- Lightweight sampled frame metadata
+- Motion-aware pose candidate sampling
 - Pose detection scaffold
+- Heuristic shooting drill validity checks
+- Analysis confidence labels
 - Backend duration validation
 - Metadata-aware video quality and reliability
 - Results screen
@@ -77,7 +80,7 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, samples up to 10 evenly spaced frame metadata records, runs optional MediaPipe Tasks Pose Landmarker detection on sampled frames when `backend/models/pose_landmarker_lite.task` exists, validates that duration is 3-15 seconds, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `sampledFrames`, and optional `poseAnalysis`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, returns up to 10 lightweight sampled frame metadata records, and can use up to 20 internal pose candidate frames chosen from a mix of evenly spaced and high-motion frames. When `backend/models/pose_landmarker_lite.task` exists, the backend runs optional MediaPipe Tasks Pose Landmarker detection, validates that duration is 3-15 seconds, estimates whether the clip matches the single-shot shooting drill requirements, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `drillValidityReport`, `sampledFrames`, optional `poseAnalysis`, and `analysisConfidence`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
 ## Manual Demo Flow
 
@@ -90,7 +93,10 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Video is not uploaded to a server yet
 - Results scoring is dynamically mocked by the backend for MVP testing
 - Video quality and reliability are influenced by real metadata
-- Pose analysis is used only for detection quality, not scoring
+- Pose analysis is used only for detection quality and confidence, not real scoring
+- Drill validity is heuristic and does not use real ball detection yet
+- Invalid or unclear clips lower confidence and avoid overconfident feedback
+- Low or partial pose detection produces more cautious feedback
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 

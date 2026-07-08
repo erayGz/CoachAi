@@ -1,11 +1,14 @@
 import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
-import { detectedAllShots, formatDetectedShots } from "../utils/analysisResult";
+import { formatShotAction, shotActionLooksLikely } from "../utils/analysisResult";
 import { G } from "../utils/theme";
 import type {
   AnalysisLevel,
+  AnalysisConfidence,
   AnalysisReliability,
   AppScreenProps,
+  DrillValidityReport,
+  DrillValidityStatus,
   PoseAnalysisSummary,
   PoseQuality,
   TrainingDrill,
@@ -22,7 +25,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
     return <NoResultState go={go} />;
   }
 
-  const detectedShotsLabel = formatDetectedShots(result);
+  const shotActionLabel = formatShotAction(result);
 
   return (
     <div className="flex flex-col h-full">
@@ -62,9 +65,9 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             <div className="flex-1 grid grid-cols-2 gap-2">
               <SummaryBadge label="Level" value={result.level} color={getLevelColor(result.level)} />
               <SummaryBadge
-                label="Shot Detected"
-                value={detectedShotsLabel}
-                color={detectedAllShots(result) ? G.green : G.amber}
+                label="Shot Action"
+                value={shotActionLabel}
+                color={shotActionLooksLikely(result) ? G.green : getShotActionColor(shotActionLabel)}
               />
               <SummaryBadge label="Video Quality" value={result.videoQuality} color={getQualityColor(result.videoQuality)} />
               <SummaryBadge label="Reliability" value={result.analysisReliability} color={getReliabilityColor(result.analysisReliability)} />
@@ -73,7 +76,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
         </div>
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
-        {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} />}
+        {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} analysisConfidence={result.analysisConfidence} />}
+        {result.drillValidityReport && <DrillValidityCard report={result.drillValidityReport} />}
         {result.poseAnalysis && <PoseDetectionCard poseAnalysis={result.poseAnalysis} />}
 
         <div
@@ -130,7 +134,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           <div className="mt-3 pt-3 flex items-center gap-2" style={{ borderTop: `1px solid ${G.greenBorder}` }}>
             <Info size={12} color={G.green} opacity={0.6} />
             <p className="text-[10px]" style={{ color: `${G.green}88` }}>
-              Based on {detectedShotsLabel} shot detection - AI-generated feedback
+              Shot action: {shotActionLabel} - AI-generated feedback
             </p>
           </div>
         </div>
@@ -193,6 +197,72 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   );
 }
 
+function DrillValidityCard({ report }: { report: DrillValidityReport }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Drill Validity
+          </p>
+          <p className="text-[10px] mt-1" style={{ color: G.whiteDim }}>
+            Single-shot shooting clip check
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          <QualityPill label="Status" value={report.status} color={getDrillValidityStatusColor(report.status)} />
+          <QualityPill label="Confidence" value={report.confidence} color={getConfidenceColor(report.confidence)} />
+        </div>
+      </div>
+
+      {report.status === "Invalid" && (
+        <div className="rounded-xl px-3 py-2 mb-3" style={{ background: `${G.red}10`, border: `1px solid ${G.red}24` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-1" style={{ color: G.red }}>
+            Check Recording
+          </p>
+          <p className="text-[11px] leading-snug" style={{ color: G.whiteDim }}>
+            Upload a clear single-shot football video for a more useful report.
+          </p>
+        </div>
+      )}
+
+      {report.warnings.length > 0 && (
+        <div className="rounded-xl px-3 py-2 mb-3" style={{ background: `${G.amber}12`, border: `1px solid ${G.amber}28` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-1" style={{ color: G.amber }}>
+            Warnings
+          </p>
+          <div className="space-y-1">
+            {report.warnings.map((warning) => (
+              <p key={warning} className="text-[11px] leading-snug" style={{ color: G.whiteDim }}>
+                {warning}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {report.checks.map((check) => (
+          <div key={check.label} className="flex items-start gap-2.5">
+            <span
+              className="mt-1 h-2 w-2 rounded-full flex-shrink-0"
+              style={{ background: getCheckStatusColor(check.status), boxShadow: `0 0 10px ${getCheckStatusColor(check.status)}55` }}
+            />
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-wide" style={{ color: G.white }}>
+                {check.label}
+              </p>
+              <p className="text-[10px] leading-snug mt-0.5" style={{ color: G.whiteDim }}>
+                {check.message}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function VideoInfoCard({ metadata }: { metadata: VideoMetadata }) {
   return (
     <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
@@ -249,7 +319,13 @@ function PoseDetectionCard({ poseAnalysis }: { poseAnalysis: PoseAnalysisSummary
   );
 }
 
-function VideoQualityChecksCard({ report }: { report: VideoQualityReport }) {
+function VideoQualityChecksCard({
+  report,
+  analysisConfidence,
+}: {
+  report: VideoQualityReport;
+  analysisConfidence?: AnalysisConfidence;
+}) {
   return (
     <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -264,8 +340,22 @@ function VideoQualityChecksCard({ report }: { report: VideoQualityReport }) {
         <div className="flex gap-1.5">
           <QualityPill label="Quality" value={report.quality} color={getQualityColor(report.quality)} />
           <QualityPill label="Reliability" value={report.reliability} color={getReliabilityColor(report.reliability)} />
+          {analysisConfidence && (
+            <QualityPill label="Confidence" value={analysisConfidence} color={getConfidenceColor(analysisConfidence)} />
+          )}
         </div>
       </div>
+
+      {analysisConfidence === "Low" && (
+        <div className="rounded-xl px-3 py-2 mb-3" style={{ background: `${G.red}10`, border: `1px solid ${G.red}24` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-1" style={{ color: G.red }}>
+            Limited Analysis
+          </p>
+          <p className="text-[11px] leading-snug" style={{ color: G.whiteDim }}>
+            Limited analysis: full-body pose was not reliably detected.
+          </p>
+        </div>
+      )}
 
       {report.warnings.length > 0 && (
         <div className="rounded-xl px-3 py-2 mb-3" style={{ background: `${G.amber}12`, border: `1px solid ${G.amber}28` }}>
@@ -413,6 +503,24 @@ function getReliabilityColor(reliability: AnalysisReliability) {
   if (reliability === "High") return G.blue;
   if (reliability === "Good") return G.green;
   return G.amber;
+}
+
+function getConfidenceColor(confidence: AnalysisConfidence) {
+  if (confidence === "High") return G.green;
+  if (confidence === "Medium") return G.amber;
+  return G.red;
+}
+
+function getShotActionColor(value: string) {
+  if (value === "Likely") return G.green;
+  if (value === "Unclear") return G.amber;
+  return G.red;
+}
+
+function getDrillValidityStatusColor(status: DrillValidityStatus) {
+  if (status === "Valid") return G.green;
+  if (status === "Unclear") return G.amber;
+  return G.red;
 }
 
 function getCheckStatusColor(status: VideoQualityCheckStatus) {

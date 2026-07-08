@@ -14,9 +14,11 @@ from .config import (
     SERVICE_NAME,
     VERSION,
 )
+from .drill_validity import evaluate_shooting_drill_validity
 from .mock_analysis import generate_mock_shooting_analysis
 from .models import (
     AnalysisReliability,
+    DrillValidityReport,
     HealthResponse,
     PoseAnalysisSummary,
     RootResponse,
@@ -31,6 +33,7 @@ from .video_processing import (
     InvalidVideoError,
     VideoMetadataExtractionError,
     evaluate_video_quality,
+    extract_pose_candidate_frames,
     extract_video_metadata,
     extract_sample_frames,
 )
@@ -103,6 +106,12 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
                 detail="Video metadata extraction failed.",
             )
 
+        try:
+            pose_candidate_frames = extract_pose_candidate_frames(temp_video_path)
+        except (InvalidVideoError, VideoMetadataExtractionError) as exc:
+            logger.warning("Pose candidate frame sampling fell back to public sampled frames: %s", exc)
+            pose_candidate_frames = sampled_frames
+
         video_metadata = _with_sampled_frame_count(video_metadata, len(sampled_frames))
 
         if video_metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
@@ -118,11 +127,20 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
             )
 
         video_quality_report = evaluate_video_quality(video_metadata)
-        pose_analysis, pose_warning = _analyze_pose_safely(temp_video_path, sampled_frames)
+        pose_analysis, pose_warning = _analyze_pose_safely(temp_video_path, pose_candidate_frames)
         video_quality_report = _with_pose_analysis_adjustments(
             video_quality_report,
             pose_analysis,
             pose_warning,
+        )
+        drill_validity_report = evaluate_shooting_drill_validity(
+            video_metadata,
+            video_quality_report,
+            pose_analysis,
+        )
+        video_quality_report = _with_drill_validity_adjustments(
+            video_quality_report,
+            drill_validity_report,
         )
 
         uploaded_file = UploadedFileMetadata(
@@ -137,6 +155,7 @@ async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResp
             video_quality_report,
             sampled_frames,
             pose_analysis,
+            drill_validity_report,
         )
     finally:
         await file.close()
@@ -213,10 +232,32 @@ def _with_pose_analysis_adjustments(
         _append_warning(warnings, pose_warning)
         reliability = _cap_high_reliability(reliability)
     elif pose_analysis is not None and pose_analysis.poseQuality == "Poor":
-        _append_warning(warnings, "Player pose was not reliably detected in sampled frames.")
-        reliability = _cap_high_reliability(reliability)
+        _append_warning(warnings, "Pose detection was limited, so technique feedback is less certain.")
+        reliability = "Medium"
     elif pose_analysis is not None and pose_analysis.poseQuality == "Partial":
-        _append_warning(warnings, "Player pose was only detected in some sampled frames.")
+        _append_warning(warnings, "Pose detection was partial, so some technique feedback may be approximate.")
+        reliability = _cap_high_reliability(reliability)
+
+    return VideoQualityReport(
+        quality=report.quality,
+        reliability=reliability,
+        warnings=warnings,
+        checks=report.checks,
+    )
+
+
+def _with_drill_validity_adjustments(
+    report: VideoQualityReport,
+    drill_validity_report: DrillValidityReport,
+) -> VideoQualityReport:
+    warnings = list(report.warnings)
+    reliability = report.reliability
+
+    if drill_validity_report.status == "Invalid":
+        _append_warning(warnings, "Uploaded video does not clearly match the single-shot shooting drill requirements.")
+        reliability = "Medium"
+    elif drill_validity_report.status == "Unclear":
+        _append_warning(warnings, "Shooting action could not be confidently verified.")
         reliability = _cap_high_reliability(reliability)
 
     return VideoQualityReport(

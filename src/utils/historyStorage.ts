@@ -1,6 +1,18 @@
 import { activeModuleLabel } from "../data/appMeta";
-import { getDetectedShotCounts } from "./analysisResult";
-import type { AnalysisHistoryItem, AnalysisLevel, AnalysisReliability, AnalysisSession, PoseQuality, VideoQuality, VideoQualityCheckStatus } from "../types";
+import { formatShotAction } from "./analysisResult";
+import type {
+  AnalysisConfidence,
+  AnalysisHistoryItem,
+  AnalysisLevel,
+  AnalysisReliability,
+  AnalysisSession,
+  DrillValidityCheckStatus,
+  DrillValidityConfidence,
+  DrillValidityStatus,
+  PoseQuality,
+  VideoQuality,
+  VideoQualityCheckStatus,
+} from "../types";
 
 export const ANALYSIS_HISTORY_STORAGE_KEY = "coachai.analysisHistory";
 
@@ -28,6 +40,14 @@ function normalizeReliability(value: unknown): AnalysisReliability | null {
   }
 
   return null;
+}
+
+function normalizeAnalysisConfidence(value: unknown): AnalysisConfidence | undefined {
+  if (value === "Low" || value === "Medium" || value === "High") {
+    return value;
+  }
+
+  return undefined;
 }
 
 function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | null {
@@ -66,9 +86,11 @@ function normalizeAnalysisHistoryItem(value: unknown): AnalysisHistoryItem | nul
     totalShots,
     videoQuality: item.videoQuality as VideoQuality,
     analysisReliability: reliability,
+    analysisConfidence: normalizeAnalysisConfidence(item.analysisConfidence),
     mainFocus: item.mainFocus,
     videoMetadata: normalizeVideoMetadata(item.videoMetadata),
     videoQualityReport: normalizeVideoQualityReport(item.videoQualityReport),
+    drillValidityReport: normalizeDrillValidityReport(item.drillValidityReport),
     sampledFrames: normalizeSampledFrames(item.sampledFrames),
     poseAnalysis: normalizePoseAnalysis(item.poseAnalysis),
   };
@@ -80,8 +102,12 @@ function normalizeDetectedShots(value: unknown) {
   }
 
   if (typeof value === "string") {
+    if (value === "Likely" || value === "Unclear" || value === "Not verified") {
+      return value;
+    }
+
     const detected = Number.parseInt(value.split("/")[0], 10);
-    return Number.isFinite(detected) ? detected : null;
+    return Number.isFinite(detected) ? detected : value.trim() || null;
   }
 
   return null;
@@ -158,6 +184,52 @@ function normalizeVideoQualityReport(value: unknown) {
     reliability,
     warnings: report.warnings.filter((warning): warning is string => typeof warning === "string"),
     checks,
+  };
+}
+
+function normalizeDrillValidityReport(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const report = value as Record<string, unknown>;
+
+  if (
+    !isDrillValidityStatus(report.status) ||
+    !isDrillValidityConfidence(report.confidence) ||
+    !Array.isArray(report.warnings) ||
+    !Array.isArray(report.checks)
+  ) {
+    return undefined;
+  }
+
+  const checks = report.checks
+    .map((check) => normalizeDrillValidityCheck(check))
+    .filter((check): check is NonNullable<ReturnType<typeof normalizeDrillValidityCheck>> => Boolean(check));
+
+  return {
+    status: report.status,
+    confidence: report.confidence,
+    warnings: report.warnings.filter((warning): warning is string => typeof warning === "string"),
+    checks,
+  };
+}
+
+function normalizeDrillValidityCheck(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const check = value as Record<string, unknown>;
+
+  if (typeof check.label !== "string" || typeof check.message !== "string" || !isDrillValidityCheckStatus(check.status)) {
+    return null;
+  }
+
+  return {
+    label: check.label,
+    status: check.status,
+    message: check.message,
   };
 }
 
@@ -279,6 +351,18 @@ function isVideoQualityCheckStatus(value: unknown): value is VideoQualityCheckSt
   return value === "pass" || value === "warning" || value === "fail";
 }
 
+function isDrillValidityStatus(value: unknown): value is DrillValidityStatus {
+  return value === "Valid" || value === "Unclear" || value === "Invalid";
+}
+
+function isDrillValidityConfidence(value: unknown): value is DrillValidityConfidence {
+  return value === "High" || value === "Medium" || value === "Low";
+}
+
+function isDrillValidityCheckStatus(value: unknown): value is DrillValidityCheckStatus {
+  return value === "pass" || value === "warning" || value === "fail";
+}
+
 function isPoseQuality(value: unknown): value is PoseQuality {
   return value === "Good" || value === "Partial" || value === "Poor";
 }
@@ -342,7 +426,7 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
   }
 
   const { result } = session;
-  const { detected, total } = getDetectedShotCounts(result);
+  const shotAction = formatShotAction(result);
 
   return {
     id: result.id ?? session.historyItemId ?? session.id ?? createHistoryId(),
@@ -351,13 +435,15 @@ export function createAnalysisHistoryItem(session: AnalysisSession): AnalysisHis
     drillName: result.drillName ?? "Shooting Analysis",
     overallScore: result.overallScore,
     level: result.level,
-    detectedShots: detected,
-    totalShots: total,
+    detectedShots: shotAction,
+    totalShots: 1,
     videoQuality: result.videoQuality,
     analysisReliability: result.analysisReliability,
+    analysisConfidence: result.analysisConfidence,
     mainFocus: result.mainFocus,
     videoMetadata: result.videoMetadata,
     videoQualityReport: result.videoQualityReport,
+    drillValidityReport: result.drillValidityReport,
     sampledFrames: result.sampledFrames,
     poseAnalysis: result.poseAnalysis,
   };

@@ -4,14 +4,14 @@ import { G } from "../utils/theme";
 import type { ScreenProps, VideoRule } from "../types";
 
 const videoRules: VideoRule[] = [
-  { icon: "1", title: "1 shot per video", detail: "Record one complete shooting action from approach to follow-through." },
-  { icon: "⏸️", title: "Stationary ball before the shot", detail: "Place the ball still on the ground before approaching." },
-  { icon: "👤", title: "Full body visible", detail: "Your entire body must stay in frame throughout the shot." },
-  { icon: "⚽", title: "Ball and goal/target visible", detail: "Both the ball and the target must be in frame at all times." },
-  { icon: "📷", title: "Fixed camera", detail: "Mount or prop your phone - no one should hold it during recording." },
-  { icon: "📐", title: "Side or 45° angle only", detail: "Camera must face the shooting line from the side or diagonal." },
+  { icon: "1", title: "One complete shot only", detail: "Record one full action from approach through follow-through." },
+  { icon: "2", title: "Ball visible at contact", detail: "Keep the ball visible before and during the strike." },
+  { icon: "3", title: "Kicking leg visible", detail: "Do not crop out the striking leg or plant foot." },
+  { icon: "4", title: "Full body stays in frame", detail: "Avoid standing too close to the camera." },
+  { icon: "5", title: "Fixed side angle", detail: "Use a stable side or 45-degree view." },
   { icon: "⏱", title: "Video: 3-15 seconds", detail: "Longer or shorter videos cannot be processed reliably." },
-  { icon: "🧍", title: "One player only", detail: "No other players in the frame during the drill." },
+  { icon: "7", title: "One player only", detail: "No other players in the frame during the drill." },
+  { icon: "8", title: "Use a shooting clip", detail: "Avoid random football clips, celebrations, or non-shooting videos." },
 ];
 
 export function ShootingGuideScreen({ go }: ScreenProps) {

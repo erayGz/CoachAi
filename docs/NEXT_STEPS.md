@@ -14,12 +14,16 @@
 - Make reliability metadata-aware
 - Add sampled frame metadata for debugging
 - Add pose detection scaffold
+- Add motion-aware pose candidate sampling
+- Add pose-aware analysis confidence
+- Add heuristic shooting drill validity checks
 - Add pose estimation
 - Add ball detection
+- Add real shot/contact detection
 - Extract shooting metrics
 - Generate real scoring data
 
-Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-based duration validation, quality checks, and reliability labels. Phase 3-C adds evenly spaced sampled frame metadata without saving frame images permanently. Phase 3-D supports the MediaPipe Tasks Pose Landmarker scaffold with a local `.task` model for detection quality only. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, and shooting metric analysis.
+Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-based duration validation, quality checks, and reliability labels. Phase 3-C adds lightweight sampled frame metadata without saving frame images permanently. Phase 3-D supports the MediaPipe Tasks Pose Landmarker scaffold with a local `.task` model for detection quality only. Phase 3-E adds motion-aware internal pose candidate sampling, pose-aware reliability adjustments, `analysisConfidence`, and more honest limited-analysis feedback. Phase 3-F adds heuristic shooting drill validity so random non-shooting clips do not receive overconfident results. Scoring is still mocked. Later Phase 3 work should replace mocked scoring with real frame, pose, ball, contact, and shooting metric analysis.
 
 ## Phase 4: Product Features
 

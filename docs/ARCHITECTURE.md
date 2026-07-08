@@ -122,7 +122,11 @@ Phase 3-B adds backend duration validation and metadata-aware quality checks. Af
 
 Phase 3-C adds sampled frame debug metadata. The backend selects up to 10 evenly spaced frames with OpenCV and returns lightweight metadata for each sampled frame. It does not save frame images, return base64 frame data, or create a frame output directory.
 
-Phase 3-D adds a MediaPipe Tasks Pose Landmarker scaffold. The backend runs pose detection on sampled frame indices when MediaPipe and a local `.task` model are available, then returns lightweight detection quality metadata. It does not return full landmark coordinates, skeleton data, pose images, or frame images. If the model is missing or pose analysis fails, the endpoint still returns a mocked analysis with `poseAnalysis: null` and adds a warning to `videoQualityReport`.
+Phase 3-D adds a MediaPipe Tasks Pose Landmarker scaffold. The backend runs pose detection when MediaPipe and a local `.task` model are available, then returns lightweight detection quality metadata. It does not return full landmark coordinates, skeleton data, pose images, or frame images. If the model is missing or pose analysis fails, the endpoint still returns a mocked analysis with `poseAnalysis: null` and adds a warning to `videoQualityReport`.
+
+Phase 3-E improves pose sampling and confidence. The public `sampledFrames` response remains limited to up to 10 lightweight frame metadata records, but pose analysis can internally use up to 20 candidate frames. Those pose candidates combine evenly spaced frames with simple high-motion frames selected by grayscale frame-difference scores. The backend deduplicates and sorts candidate frame indices before running pose detection.
+
+Phase 3-F adds heuristic shooting drill validity checks. The backend estimates whether the uploaded clip looks like a valid single-shot football shooting drill before allowing confident mocked scoring. This does not use real ball detection or true shot detection yet. It uses duration, pose presence, full-body visibility, simple action cues from pose frames, and video quality to produce a `drillValidityReport`.
 
 Pose Landmarker expects the local model file at:
 
@@ -150,7 +154,16 @@ The response also includes `videoQualityReport`:
 - `warnings`
 - `checks`
 
-`videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and a mock detected-shot result of `0/1` also caps reliability below `High`.
+`videoQuality` and `analysisReliability` are derived from the quality report. Warnings prevent reliability from being `High`, low resolution or low FPS lowers the quality label, and invalid drill validity sets reliability to `Medium`.
+
+The response also includes `drillValidityReport`:
+
+- `status`
+- `confidence`
+- `warnings`
+- `checks`
+
+Drill validity status can be `Valid`, `Unclear`, or `Invalid`. The backend still returns a mocked analysis for invalid or unclear clips, but it lowers confidence, caps score ranges, and uses more cautious feedback. `detectedShots` is kept for API compatibility, but its visible product meaning is now `Shot Action` with values such as `Likely`, `Unclear`, and `Not verified`.
 
 The response also includes `sampledFrames`:
 
@@ -170,7 +183,15 @@ The response may also include `poseAnalysis`:
 - `poseQuality`
 - `frameSummaries`
 
-For each sampled frame, `frameSummaries` stores only whether pose was detected, landmark count, and average visibility. Poor pose detection caps `High` reliability and adds a warning. Partial pose detection also adds a warning. Real shooting technique scoring remains future work.
+For each analyzed pose candidate frame, `frameSummaries` stores only whether pose was detected, landmark count, and average visibility.
+
+The response also includes `analysisConfidence`:
+
+- `High` when pose quality is good and reliability is `High` or `Good`
+- `Medium` when drill validity is unclear, pose quality is partial, or pose quality is good with medium reliability
+- `Low` when drill validity is invalid, pose quality is poor, or pose analysis is unavailable
+
+Poor pose detection sets `analysisReliability` to `Medium` and adds a limited-analysis warning. Partial pose detection prevents `analysisReliability` from being `High` and adds an approximate-feedback warning. Invalid or unclear drill validity also prevents overconfident scoring and feedback. Real shooting technique scoring and real ball/contact detection remain future work.
 
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
@@ -187,6 +208,8 @@ The backend currently extracts real video metadata, derives quality labels from 
 The generator:
 
 - Uses weighted random score ranges
+- Caps overall score at 64 for invalid drill clips
+- Caps overall score at 79 for unclear drill clips
 - Generates sub-scores around the overall score
 - Clamps sub-scores to realistic limits
 - Chooses the weakest sub-score as `Main Focus`
@@ -205,9 +228,9 @@ Saved history is used by:
 - History stats, filters, chart, and list
 - Profile stats
 
-Each history item includes the session id, date/time, module name, drill name, overall score, level, detected shots, video quality, analysis reliability, and main focus.
+Each history item includes the session id, date/time, module name, drill name, overall score, level, shot action, video quality, analysis reliability, and main focus.
 
-If present, saved history also preserves `videoMetadata`, `videoQualityReport`, `sampledFrames`, and `poseAnalysis` for future screens or backend integration work.
+If present, saved history also preserves `analysisConfidence`, `drillValidityReport`, `videoMetadata`, `videoQualityReport`, `sampledFrames`, and `poseAnalysis` for future screens or backend integration work.
 
 Duplicate history items are prevented by checking the saved item id before writing to localStorage.
 

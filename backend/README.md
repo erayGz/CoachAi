@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 3-D:
+This backend is intentionally limited to Phase 3-F:
 
 - No real AI analysis
 - No authentication
@@ -10,7 +10,7 @@ This backend is intentionally limited to Phase 3-D:
 - No cloud video storage
 - No permanent video saving
 
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks Pose Landmarker scaffold, validates duration, evaluates metadata-based video quality, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks Pose Landmarker scaffold, validates duration, evaluates metadata-based video quality, estimates shooting drill validity with lightweight heuristics, derives pose-aware reliability and confidence, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
 
 ## Setup
 
@@ -171,7 +171,7 @@ It also extracts video metadata with OpenCV:
 - `frameCount`
 - `sampledFrameCount`
 
-It also extracts up to 10 evenly spaced sampled frame metadata records:
+It also extracts up to 10 public sampled frame metadata records:
 
 - `frameIndex`
 - `timestampSeconds`
@@ -180,7 +180,9 @@ It also extracts up to 10 evenly spaced sampled frame metadata records:
 
 Sampled frames are not saved to disk, returned as base64, or stored permanently. Only metadata is returned for future computer vision debugging.
 
-If MediaPipe and the local `.task` model are available, the backend runs Pose Landmarker in `VIDEO` mode on the sampled frame indices and returns lightweight `poseAnalysis` metadata:
+For pose analysis, the backend may also select up to 20 internal candidate frames. These are not exposed as a separate frame list. The candidate set combines evenly spaced frames with higher-motion frames found through simple grayscale frame differences between probe frames. This gives pose detection more chances to inspect the shooting motion while keeping the public API response lightweight.
+
+If MediaPipe and the local `.task` model are available, the backend runs Pose Landmarker in `VIDEO` mode on the internal pose candidate frame indices and returns lightweight `poseAnalysis` metadata:
 
 - `framesAnalyzed`
 - `framesWithPose`
@@ -199,7 +201,30 @@ The backend evaluates video quality from metadata:
 - Frame count
 - Frame sampling
 
-The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If the single shot is not detected in the mock result, reliability is capped below `High`. Poor or unavailable pose detection also adds a warning and caps `High` reliability.
+The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If the single shot is not detected in the mock result, reliability is capped below `High`.
+
+Pose quality also influences reliability and feedback:
+
+- Poor pose detection sets `analysisReliability` to `Medium`
+- Partial pose detection prevents `analysisReliability` from being `High`
+- Missing pose analysis returns `poseAnalysis: null` and adds a warning
+- Poor or partial pose detection uses more cautious coach feedback instead of overly specific technique claims
+
+The response also includes `analysisConfidence`:
+
+- `High`: good pose quality with high or good reliability
+- `Medium`: partial pose quality, or good pose quality with medium reliability
+- `Low`: poor pose quality or unavailable pose analysis
+
+The response also includes a heuristic `drillValidityReport`. This does not use real ball detection or true shot detection yet. It checks duration, pose presence, full-body visibility, simple action cues from pose frames, and video quality. Its goal is to stop random non-shooting clips from receiving overconfident shooting reports.
+
+Drill validity affects the mocked result:
+
+- `Valid`: `detectedShots` is returned as `Likely`, and normal pose-aware confidence rules apply
+- `Unclear`: `detectedShots` is returned as `Unclear`, `analysisConfidence` is capped below `High`, and `overallScore` is capped at 79
+- `Invalid`: `detectedShots` is returned as `Not verified`, `analysisConfidence` is `Low`, `analysisReliability` is `Medium`, and `overallScore` is capped at 64
+
+Invalid and unclear clips still return an analysis response, but feedback is softened so CoachAI does not claim confident technique analysis from a clip that may not show a clear football shot.
 
 The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
@@ -227,9 +252,10 @@ Example response shape:
   "drillName": "Shooting Analysis",
   "overallScore": 76,
   "level": "Intermediate",
-  "detectedShots": "1/1",
+  "detectedShots": "Likely",
   "videoQuality": "Good",
   "analysisReliability": "Good",
+  "analysisConfidence": "High",
   "mainFocus": "Plant Foot Position",
   "mainFocusDescription": "Your support foot is slightly too far from the ball in most shots...",
   "technicalBreakdown": [
@@ -274,6 +300,18 @@ Example response shape:
       }
     ]
   },
+  "drillValidityReport": {
+    "status": "Valid",
+    "confidence": "High",
+    "warnings": [],
+    "checks": [
+      {
+        "label": "Action cues",
+        "status": "pass",
+        "message": "Movement cues are usable, but ball contact is not verified yet."
+      }
+    ]
+  },
   "sampledFrames": [
     {
       "frameIndex": 0,
@@ -283,7 +321,7 @@ Example response shape:
     }
   ],
   "poseAnalysis": {
-    "framesAnalyzed": 10,
+    "framesAnalyzed": 20,
     "framesWithPose": 8,
     "poseDetectionRate": 0.8,
     "averageVisibility": 0.72,
@@ -391,7 +429,7 @@ curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@sample-shooting-video.mp4"
 ```
 
-Expected: the response includes `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`. If MediaPipe runs successfully, the response also includes `poseAnalysis`; if pose analysis fails, the response still succeeds and includes a pose warning in `videoQualityReport.warnings`.
+Expected: the response includes `analysisConfidence`, `drillValidityReport`, `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`. If MediaPipe runs successfully, the response also includes `poseAnalysis`; if pose analysis fails, the response still succeeds with `poseAnalysis: null`, low or medium confidence, and warnings in `videoQualityReport.warnings`.
 
 Test non-video validation:
 

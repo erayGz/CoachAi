@@ -6,7 +6,11 @@ from typing import TypeVar
 from uuid import uuid4
 
 from .models import (
+    AnalysisConfidence,
     AnalysisLevel,
+    AnalysisReliability,
+    DrillValidityReport,
+    DrillValidityStatus,
     PoseAnalysisSummary,
     SampledFrameInfo,
     ShootingAnalysisCategory,
@@ -98,6 +102,30 @@ FEEDBACK_BY_FOCUS: dict[ShootingAnalysisCategory, str] = {
         "placement before power."
     ),
 }
+
+LOW_CONFIDENCE_FEEDBACK = (
+    "CoachAI could not reliably detect the player's full body during the shot. "
+    "The score is a preview estimate based on video quality and general motion "
+    "signals. For better feedback, record from a stable side or 45-degree angle "
+    "with the full body visible."
+)
+
+MEDIUM_CONFIDENCE_FEEDBACK = (
+    "CoachAI detected the player in some frames, but not consistently throughout "
+    "the shot. The feedback is approximate. Record with the full body visible for "
+    "a more confident technique report."
+)
+
+INVALID_DRILL_FEEDBACK = (
+    "CoachAI could not verify that this video contains a clear football shooting "
+    "action. Please upload a single-shot clip with the full body, ball, and "
+    "kicking leg visible."
+)
+
+UNCLEAR_DRILL_FEEDBACK = (
+    "CoachAI found some movement cues, but the shooting action was not clear "
+    "enough for confident technical feedback."
+)
 
 TRAINING_BY_FOCUS: dict[ShootingAnalysisCategory, list[TrainingPlanItem]] = {
     "Approach & Balance": [
@@ -232,16 +260,33 @@ def _choose_main_focus(sub_scores: list[TechnicalBreakdownItem]) -> ShootingAnal
     return min(sub_scores, key=lambda item: item.score).label
 
 
-def _generate_detected_shots() -> str:
-    detected = _pick_weighted([(1, 92), (0, 8)])
-    return f"{detected}/1"
+def _get_drill_status(drill_validity_report: DrillValidityReport | None) -> DrillValidityStatus:
+    return drill_validity_report.status if drill_validity_report is not None else "Unclear"
 
 
-def _adjust_report_for_detected_shots(
+def _get_score_cap(drill_validity_report: DrillValidityReport | None) -> int:
+    status = _get_drill_status(drill_validity_report)
+    if status == "Invalid":
+        return 64
+    if status == "Unclear":
+        return 79
+    return 94
+
+
+def _get_shot_action(drill_validity_report: DrillValidityReport | None) -> str:
+    status = _get_drill_status(drill_validity_report)
+    if status == "Valid":
+        return "Likely"
+    if status == "Unclear":
+        return "Unclear"
+    return "Not verified"
+
+
+def _adjust_report_for_shot_action(
     quality_report: VideoQualityReport,
-    detected_shots: str,
+    shot_action: str,
 ) -> VideoQualityReport:
-    if detected_shots != "0/1" or quality_report.reliability != "High":
+    if shot_action == "Likely" or quality_report.reliability != "High":
         return quality_report
 
     return VideoQualityReport(
@@ -252,18 +297,62 @@ def _adjust_report_for_detected_shots(
     )
 
 
+def _get_analysis_confidence(
+    pose_analysis: PoseAnalysisSummary | None,
+    reliability: AnalysisReliability,
+    drill_validity_report: DrillValidityReport | None,
+) -> AnalysisConfidence:
+    status = _get_drill_status(drill_validity_report)
+    if status == "Invalid":
+        return "Low"
+    if status == "Unclear":
+        return "Medium"
+    if pose_analysis is None:
+        return "Low"
+    if pose_analysis.poseQuality == "Poor":
+        return "Low"
+    if pose_analysis.poseQuality == "Partial":
+        return "Medium"
+    if reliability in {"High", "Good"}:
+        return "High"
+    return "Medium"
+
+
+def _get_coach_feedback(
+    main_focus: ShootingAnalysisCategory,
+    pose_analysis: PoseAnalysisSummary | None,
+    drill_validity_report: DrillValidityReport | None,
+) -> str:
+    status = _get_drill_status(drill_validity_report)
+    if status == "Invalid":
+        return INVALID_DRILL_FEEDBACK
+    if status == "Unclear":
+        return UNCLEAR_DRILL_FEEDBACK
+    if pose_analysis is None or pose_analysis.poseQuality == "Poor":
+        return LOW_CONFIDENCE_FEEDBACK
+    if pose_analysis.poseQuality == "Partial":
+        return MEDIUM_CONFIDENCE_FEEDBACK
+    return FEEDBACK_BY_FOCUS[main_focus]
+
+
 def generate_mock_shooting_analysis(
     uploaded_file: UploadedFileMetadata,
     video_metadata: VideoMetadata,
     video_quality_report: VideoQualityReport,
     sampled_frames: list[SampledFrameInfo],
     pose_analysis: PoseAnalysisSummary | None,
+    drill_validity_report: DrillValidityReport | None,
 ) -> ShootingAnalysisResponse:
-    overall_score = _generate_overall_score()
+    overall_score = min(_generate_overall_score(), _get_score_cap(drill_validity_report))
     technical_breakdown = _generate_sub_scores(overall_score)
     main_focus = _choose_main_focus(technical_breakdown)
-    detected_shots = _generate_detected_shots()
-    adjusted_quality_report = _adjust_report_for_detected_shots(video_quality_report, detected_shots)
+    shot_action = _get_shot_action(drill_validity_report)
+    adjusted_quality_report = _adjust_report_for_shot_action(video_quality_report, shot_action)
+    analysis_confidence = _get_analysis_confidence(
+        pose_analysis,
+        adjusted_quality_report.reliability,
+        drill_validity_report,
+    )
 
     return ShootingAnalysisResponse(
         id=str(uuid4()),
@@ -272,17 +361,19 @@ def generate_mock_shooting_analysis(
         drillName="Shooting Analysis",
         overallScore=overall_score,
         level=_get_level(overall_score),
-        detectedShots=detected_shots,
+        detectedShots=shot_action,
         videoQuality=adjusted_quality_report.quality,
         analysisReliability=adjusted_quality_report.reliability,
+        analysisConfidence=analysis_confidence,
         mainFocus=main_focus,
         mainFocusDescription=FOCUS_DESCRIPTIONS[main_focus],
         technicalBreakdown=technical_breakdown,
-        aiCoachFeedback=FEEDBACK_BY_FOCUS[main_focus],
+        aiCoachFeedback=_get_coach_feedback(main_focus, pose_analysis, drill_validity_report),
         recommendedTraining=TRAINING_BY_FOCUS[main_focus],
         uploadedFile=uploaded_file,
         videoMetadata=video_metadata,
         videoQualityReport=adjusted_quality_report,
+        drillValidityReport=drill_validity_report,
         sampledFrames=sampled_frames,
         poseAnalysis=pose_analysis,
     )

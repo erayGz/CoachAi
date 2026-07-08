@@ -6,8 +6,12 @@ from pydantic import BaseModel, Field
 
 AnalysisLevel = Literal["Beginner", "Developing", "Intermediate", "Advanced", "Elite"]
 AnalysisReliability = Literal["Medium", "Good", "High"]
+AnalysisConfidence = Literal["Low", "Medium", "High"]
 VideoQuality = Literal["Fair", "Good", "Excellent"]
 VideoQualityCheckStatus = Literal["pass", "warning", "fail"]
+DrillValidityStatus = Literal["Valid", "Unclear", "Invalid"]
+DrillValidityConfidence = Literal["High", "Medium", "Low"]
+DrillValidityCheckStatus = Literal["pass", "warning", "fail"]
 PoseQuality = Literal["Good", "Partial", "Poor"]
 SubScoreStatus = Literal["Strong", "Good", "Needs Work"]
 ShootingAnalysisCategory = Literal[
@@ -84,6 +88,19 @@ class VideoQualityReport(BaseModel):
     checks: list[VideoQualityCheck]
 
 
+class DrillValidityCheck(BaseModel):
+    label: str
+    status: DrillValidityCheckStatus
+    message: str
+
+
+class DrillValidityReport(BaseModel):
+    status: DrillValidityStatus
+    confidence: DrillValidityConfidence
+    warnings: list[str]
+    checks: list[DrillValidityCheck]
+
+
 class TechnicalBreakdownItem(BaseModel):
     label: ShootingAnalysisCategory
     score: int = Field(ge=0, le=100)
@@ -108,6 +125,7 @@ class ShootingAnalysisResponse(BaseModel):
     detectedShots: str
     videoQuality: VideoQuality
     analysisReliability: AnalysisReliability
+    analysisConfidence: AnalysisConfidence
     mainFocus: ShootingAnalysisCategory
     mainFocusDescription: str
     technicalBreakdown: list[TechnicalBreakdownItem]
@@ -116,5 +134,6 @@ class ShootingAnalysisResponse(BaseModel):
     uploadedFile: UploadedFileMetadata
     videoMetadata: VideoMetadata
     videoQualityReport: VideoQualityReport
+    drillValidityReport: DrillValidityReport | None = None
     sampledFrames: list[SampledFrameInfo]
     poseAnalysis: PoseAnalysisSummary | None = None

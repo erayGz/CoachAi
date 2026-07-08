@@ -46,6 +46,8 @@ export type VideoQuality = "Fair" | "Good" | "Excellent";
 
 export type AnalysisReliability = "Medium" | "Good" | "High";
 
+export type AnalysisConfidence = "Low" | "Medium" | "High";
+
 export type VideoQualityCheckStatus = "pass" | "warning" | "fail";
 
 export type VideoQualityCheck = {
@@ -59,6 +61,25 @@ export type VideoQualityReport = {
   reliability: AnalysisReliability;
   warnings: string[];
   checks: VideoQualityCheck[];
+};
+
+export type DrillValidityStatus = "Valid" | "Unclear" | "Invalid";
+
+export type DrillValidityConfidence = "High" | "Medium" | "Low";
+
+export type DrillValidityCheckStatus = "pass" | "warning" | "fail";
+
+export type DrillValidityCheck = {
+  label: string;
+  status: DrillValidityCheckStatus;
+  message: string;
+};
+
+export type DrillValidityReport = {
+  status: DrillValidityStatus;
+  confidence: DrillValidityConfidence;
+  warnings: string[];
+  checks: DrillValidityCheck[];
 };
 
 export type PoseQuality = "Good" | "Partial" | "Poor";
@@ -99,6 +120,7 @@ export type ShootingAnalysisResult = {
   totalShots?: number;
   videoQuality: VideoQuality;
   analysisReliability: AnalysisReliability;
+  analysisConfidence?: AnalysisConfidence;
   mainFocus: ShootingAnalysisCategory;
   mainFocusDescription: string;
   technicalBreakdown: SubScore[];
@@ -107,6 +129,7 @@ export type ShootingAnalysisResult = {
   uploadedFile?: UploadedFileMetadata;
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
+  drillValidityReport?: DrillValidityReport | null;
   sampledFrames?: SampledFrameInfo[];
   poseAnalysis?: PoseAnalysisSummary | null;
 };
@@ -127,13 +150,15 @@ export type AnalysisHistoryItem = {
   drillName: string;
   overallScore: number;
   level: AnalysisLevel;
-  detectedShots: number;
-  totalShots: number;
+  detectedShots: number | string;
+  totalShots?: number;
   videoQuality: VideoQuality;
   analysisReliability: AnalysisReliability;
+  analysisConfidence?: AnalysisConfidence;
   mainFocus: string;
   videoMetadata?: VideoMetadata;
   videoQualityReport?: VideoQualityReport;
+  drillValidityReport?: DrillValidityReport | null;
   sampledFrames?: SampledFrameInfo[];
   poseAnalysis?: PoseAnalysisSummary | null;
 };
