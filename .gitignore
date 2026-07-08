@@ -1,2 +1,10 @@
 backend/models/*.task
 !backend/models/README.md
+
+samples/**/*.mp4
+samples/**/*.mov
+samples/**/*.avi
+samples/**/*.mkv
+samples/**/*.webm
+!samples/README.md
+!samples/metadata.csv

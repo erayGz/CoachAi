@@ -26,6 +26,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Motion-aware pose candidate sampling
 - Pose detection scaffold
 - Heuristic shooting drill validity checks
+- Local-only samples dataset and evaluation runner
 - Analysis confidence labels
 - Backend duration validation
 - Metadata-aware video quality and reliability
@@ -82,6 +83,25 @@ Backend endpoints:
 
 The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, returns up to 10 lightweight sampled frame metadata records, and can use up to 20 internal pose candidate frames chosen from a mix of evenly spaced and high-motion frames. When `backend/models/pose_landmarker_lite.task` exists, the backend runs optional MediaPipe Tasks Pose Landmarker detection, validates that duration is 3-15 seconds, estimates whether the clip matches the single-shot shooting drill requirements, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `drillValidityReport`, `sampledFrames`, optional `poseAnalysis`, and `analysisConfidence`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
+## Local Sample Evaluation
+
+Local test videos can be organized under `samples/`:
+
+```text
+samples/invalid/
+samples/bad/
+samples/medium/
+samples/good/
+```
+
+Video files in `samples/` are ignored by Git. Add expected outcomes to `samples/metadata.csv`, then run the backend and evaluate:
+
+```bash
+python backend/scripts/evaluate_samples.py
+```
+
+The runner helps calibrate drill validity, confidence, and future scoring behavior without committing video files.
+
 ## Manual Demo Flow
 
 Splash → Dashboard → Shooting Guide → Video Upload → Processing → Results → History → Profile
@@ -97,6 +117,7 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Drill validity is heuristic and does not use real ball detection yet
 - Invalid or unclear clips lower confidence, cap scores, and avoid overconfident feedback
 - Low or partial pose detection produces more cautious feedback
+- Local samples are for calibration only and are not committed
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 

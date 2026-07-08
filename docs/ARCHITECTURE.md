@@ -130,6 +130,8 @@ Phase 3-F adds heuristic shooting drill validity checks. The backend estimates w
 
 Phase 3-G makes unclear and invalid drill results safer. `Unclear` and `Invalid` responses are treated as limited previews, with stricter score caps, safer main focus labels, and softened feedback. Real ball detection is still required before CoachAI can make stronger shot-validity decisions.
 
+Phase 3-H adds a local-only samples dataset and evaluation runner. Videos are organized under `samples/invalid`, `samples/bad`, `samples/medium`, and `samples/good`, while `samples/metadata.csv` records expected validity and confidence outcomes. Video files are ignored by Git. The evaluation runner posts each listed sample to the running backend and prints expected vs actual results so drill validity, confidence, and future scoring can be calibrated systematically.
+
 Pose Landmarker expects the local model file at:
 
 ```text
@@ -220,6 +222,24 @@ The generator:
 - Generates recommended training suggestions for the weakest category
 
 This gives the demo realistic variation while metadata extraction prepares the backend for later real analysis.
+
+## Local Sample Evaluation
+
+The `samples/` folder is for local calibration only:
+
+- `samples/invalid`
+- `samples/bad`
+- `samples/medium`
+- `samples/good`
+- `samples/metadata.csv`
+
+The backend evaluation script lives at:
+
+```text
+backend/scripts/evaluate_samples.py
+```
+
+It reads `samples/metadata.csv`, locates local video files, sends them to the running backend, and compares expected validity and confidence with the actual `drillValidityReport` and `analysisConfidence`. It does not store videos, change backend behavior, or add a database. This workflow is intended to calibrate heuristic drill validity now and real scoring later.
 
 ## localStorage History
 

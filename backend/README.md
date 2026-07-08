@@ -438,6 +438,35 @@ curl -X POST http://127.0.0.1:8000/analyze/shooting \
   -F "file=@README.md;type=text/plain"
 ```
 
+## Local Sample Evaluation
+
+The project includes a local-only samples dataset structure:
+
+```text
+samples/
+  metadata.csv
+  invalid/
+  bad/
+  medium/
+  good/
+```
+
+Video files under `samples/` are ignored by Git. `samples/metadata.csv` stores manual expected outcomes for drill validity and confidence.
+
+Run the backend first, then evaluate listed samples from the project root:
+
+```bash
+python backend/scripts/evaluate_samples.py
+```
+
+Optional backend URL:
+
+```bash
+python backend/scripts/evaluate_samples.py --backend-url http://127.0.0.1:8000
+```
+
+The runner posts each listed video to `/analyze/shooting` and prints expected vs actual validity, confidence, score, pose quality, warning count, and pass/fail status. This helps calibrate drill validity and future scoring without committing private or large videos.
+
 ## CORS
 
 CORS is enabled for local frontend development:
