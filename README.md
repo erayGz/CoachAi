@@ -95,7 +95,7 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Video quality and reliability are influenced by real metadata
 - Pose analysis is used only for detection quality and confidence, not real scoring
 - Drill validity is heuristic and does not use real ball detection yet
-- Invalid or unclear clips lower confidence and avoid overconfident feedback
+- Invalid or unclear clips lower confidence, cap scores, and avoid overconfident feedback
 - Low or partial pose detection produces more cautious feedback
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently

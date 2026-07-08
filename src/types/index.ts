@@ -109,6 +109,11 @@ export type ShootingAnalysisCategory =
   | "Follow-through"
   | "Accuracy";
 
+export type AnalysisMainFocus =
+  | ShootingAnalysisCategory
+  | "Recording Clarity"
+  | "Shot Action Clarity";
+
 export type ShootingAnalysisResult = {
   id?: string;
   createdAt?: string;
@@ -121,7 +126,7 @@ export type ShootingAnalysisResult = {
   videoQuality: VideoQuality;
   analysisReliability: AnalysisReliability;
   analysisConfidence?: AnalysisConfidence;
-  mainFocus: ShootingAnalysisCategory;
+  mainFocus: AnalysisMainFocus;
   mainFocusDescription: string;
   technicalBreakdown: SubScore[];
   aiCoachFeedback: string;

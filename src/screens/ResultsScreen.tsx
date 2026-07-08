@@ -26,6 +26,9 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   }
 
   const shotActionLabel = formatShotAction(result);
+  const drillValidityStatus = result.drillValidityReport?.status;
+  const isLimitedPreview = drillValidityStatus === "Unclear" || drillValidityStatus === "Invalid";
+  const scoreLabel = isLimitedPreview ? "Preview Score" : "Overall Score";
 
   return (
     <div className="flex flex-col h-full">
@@ -58,7 +61,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           <div className="relative flex items-center gap-5">
             <div className="text-center">
               <p className="text-[10px] tracking-widest uppercase mb-1" style={{ color: G.muted }}>
-                Overall Score
+                {scoreLabel}
               </p>
               <ScoreRing score={result.overallScore} size={130} />
             </div>
@@ -102,6 +105,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             </div>
           </div>
         </div>
+
+        {isLimitedPreview && <LimitedPreviewBanner status={drillValidityStatus === "Invalid" ? "Invalid" : "Unclear"} />}
 
         <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
           <div className="px-4 py-3" style={{ borderBottom: `1px solid ${G.border}` }}>
@@ -193,6 +198,27 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function LimitedPreviewBanner({ status }: { status: "Unclear" | "Invalid" }) {
+  const isInvalid = status === "Invalid";
+
+  return (
+    <div
+      className="rounded-2xl px-4 py-3.5"
+      style={{
+        background: `${isInvalid ? G.red : G.amber}10`,
+        border: `1px solid ${isInvalid ? `${G.red}28` : `${G.amber}28`}`,
+      }}
+    >
+      <p className="text-[10px] font-black tracking-widest uppercase mb-1" style={{ color: isInvalid ? G.red : G.amber }}>
+        Limited Preview
+      </p>
+      <p className="text-[12px] leading-relaxed" style={{ color: G.whiteDim }}>
+        Limited preview: shooting action was not confidently verified.
+      </p>
     </div>
   );
 }

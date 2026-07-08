@@ -128,6 +128,8 @@ Phase 3-E improves pose sampling and confidence. The public `sampledFrames` resp
 
 Phase 3-F adds heuristic shooting drill validity checks. The backend estimates whether the uploaded clip looks like a valid single-shot football shooting drill before allowing confident mocked scoring. This does not use real ball detection or true shot detection yet. It uses duration, pose presence, full-body visibility, simple action cues from pose frames, and video quality to produce a `drillValidityReport`.
 
+Phase 3-G makes unclear and invalid drill results safer. `Unclear` and `Invalid` responses are treated as limited previews, with stricter score caps, safer main focus labels, and softened feedback. Real ball detection is still required before CoachAI can make stronger shot-validity decisions.
+
 Pose Landmarker expects the local model file at:
 
 ```text
@@ -163,7 +165,7 @@ The response also includes `drillValidityReport`:
 - `warnings`
 - `checks`
 
-Drill validity status can be `Valid`, `Unclear`, or `Invalid`. The backend still returns a mocked analysis for invalid or unclear clips, but it lowers confidence, caps score ranges, and uses more cautious feedback. `detectedShots` is kept for API compatibility, but its visible product meaning is now `Shot Action` with values such as `Likely`, `Unclear`, and `Not verified`.
+Drill validity status can be `Valid`, `Unclear`, or `Invalid`. The backend still returns a mocked analysis for invalid or unclear clips, but it lowers confidence, caps score ranges, and uses more cautious feedback. `Unclear` scores are capped at 69, and `Invalid` scores are capped at 55. `detectedShots` is kept for API compatibility, but its visible product meaning is now `Shot Action` with values such as `Likely`, `Unclear`, and `Not verified`.
 
 The response also includes `sampledFrames`:
 
@@ -191,7 +193,7 @@ The response also includes `analysisConfidence`:
 - `Medium` when drill validity is unclear, pose quality is partial, or pose quality is good with medium reliability
 - `Low` when drill validity is invalid, pose quality is poor, or pose analysis is unavailable
 
-Poor pose detection sets `analysisReliability` to `Medium` and adds a limited-analysis warning. Partial pose detection prevents `analysisReliability` from being `High` and adds an approximate-feedback warning. Invalid or unclear drill validity also prevents overconfident scoring and feedback. Real shooting technique scoring and real ball/contact detection remain future work.
+Poor pose detection sets `analysisReliability` to `Medium` and adds a limited-analysis warning. Partial pose detection prevents `analysisReliability` from being `High` and adds an approximate-feedback warning. Invalid or unclear drill validity also prevents overconfident scoring and feedback. Invalid reports use `Shot Action Clarity` as the main focus, while unclear reports use `Recording Clarity`. Real shooting technique scoring and real ball/contact detection remain future work.
 
 The frontend API client reads backend `detail` messages when available. Processing shows those messages as:
 
@@ -208,11 +210,12 @@ The backend currently extracts real video metadata, derives quality labels from 
 The generator:
 
 - Uses weighted random score ranges
-- Caps overall score at 64 for invalid drill clips
-- Caps overall score at 79 for unclear drill clips
+- Caps overall score at 55 for invalid drill clips
+- Caps overall score at 69 for unclear drill clips
 - Generates sub-scores around the overall score
 - Clamps sub-scores to realistic limits
-- Chooses the weakest sub-score as `Main Focus`
+- Chooses the weakest sub-score as `Main Focus` only for valid drill clips
+- Uses recording/action clarity as `Main Focus` for limited previews
 - Generates coach feedback based on the weakest category
 - Generates recommended training suggestions for the weakest category
 

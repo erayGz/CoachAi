@@ -22,6 +22,16 @@ ShootingAnalysisCategory = Literal[
     "Follow-through",
     "Accuracy",
 ]
+AnalysisMainFocus = Literal[
+    "Approach & Balance",
+    "Plant Foot Position",
+    "Body Posture",
+    "Contact Mechanics",
+    "Follow-through",
+    "Accuracy",
+    "Recording Clarity",
+    "Shot Action Clarity",
+]
 
 
 class HealthResponse(BaseModel):
@@ -126,7 +136,7 @@ class ShootingAnalysisResponse(BaseModel):
     videoQuality: VideoQuality
     analysisReliability: AnalysisReliability
     analysisConfidence: AnalysisConfidence
-    mainFocus: ShootingAnalysisCategory
+    mainFocus: AnalysisMainFocus
     mainFocusDescription: str
     technicalBreakdown: list[TechnicalBreakdownItem]
     aiCoachFeedback: str

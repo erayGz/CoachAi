@@ -8,6 +8,7 @@ from uuid import uuid4
 from .models import (
     AnalysisConfidence,
     AnalysisLevel,
+    AnalysisMainFocus,
     AnalysisReliability,
     DrillValidityReport,
     DrillValidityStatus,
@@ -118,13 +119,15 @@ MEDIUM_CONFIDENCE_FEEDBACK = (
 
 INVALID_DRILL_FEEDBACK = (
     "CoachAI could not verify that this video contains a clear football shooting "
-    "action. Please upload a single-shot clip with the full body, ball, and "
-    "kicking leg visible."
+    "action. This result is a limited preview, not a technique score. Upload one "
+    "complete shot with the full body, ball, and kicking leg visible."
 )
 
 UNCLEAR_DRILL_FEEDBACK = (
-    "CoachAI found some movement cues, but the shooting action was not clear "
-    "enough for confident technical feedback."
+    "CoachAI found some useful movement cues, but the shooting action was not "
+    "clear enough for confident technical feedback. This score is a limited "
+    "preview. For a better report, record one complete shot from a stable side "
+    "or 45-degree angle."
 )
 
 TRAINING_BY_FOCUS: dict[ShootingAnalysisCategory, list[TrainingPlanItem]] = {
@@ -183,6 +186,13 @@ TRAINING_BY_FOCUS: dict[ShootingAnalysisCategory, list[TrainingPlanItem]] = {
         TrainingPlanItem(name="Accuracy pressure set", reps="5 rounds", focus="Consistency"),
     ],
 }
+
+LIMITED_PREVIEW_TRAINING: list[TrainingPlanItem] = [
+    TrainingPlanItem(name="Record one complete shot", reps="1 clear 3-15 sec clip", focus="Clarity"),
+    TrainingPlanItem(name="Set a stable side angle", reps="Side or 45-degree view", focus="Camera"),
+    TrainingPlanItem(name="Keep ball and kicking leg visible", reps="Before and through contact", focus="Visibility"),
+    TrainingPlanItem(name="Review framing before upload", reps="Full body in frame", focus="Setup"),
+]
 
 
 def _random_int(min_value: int, max_value: int) -> int:
@@ -260,6 +270,29 @@ def _choose_main_focus(sub_scores: list[TechnicalBreakdownItem]) -> ShootingAnal
     return min(sub_scores, key=lambda item: item.score).label
 
 
+def _get_main_focus(
+    sub_scores: list[TechnicalBreakdownItem],
+    drill_validity_report: DrillValidityReport | None,
+) -> AnalysisMainFocus:
+    status = _get_drill_status(drill_validity_report)
+    if status == "Invalid":
+        return "Shot Action Clarity"
+    if status == "Unclear":
+        return "Recording Clarity"
+    return _choose_main_focus(sub_scores)
+
+
+def _get_main_focus_description(main_focus: AnalysisMainFocus) -> str:
+    if main_focus == "Shot Action Clarity":
+        return "CoachAI could not verify a clear single-shot football action in this video."
+    if main_focus == "Recording Clarity":
+        return (
+            "The shooting action was not clear enough for a confident technique "
+            "report. Record with full body, ball, and kicking leg visible."
+        )
+    return FOCUS_DESCRIPTIONS[main_focus]
+
+
 def _get_drill_status(drill_validity_report: DrillValidityReport | None) -> DrillValidityStatus:
     return drill_validity_report.status if drill_validity_report is not None else "Unclear"
 
@@ -267,9 +300,9 @@ def _get_drill_status(drill_validity_report: DrillValidityReport | None) -> Dril
 def _get_score_cap(drill_validity_report: DrillValidityReport | None) -> int:
     status = _get_drill_status(drill_validity_report)
     if status == "Invalid":
-        return 64
+        return 55
     if status == "Unclear":
-        return 79
+        return 69
     return 94
 
 
@@ -286,12 +319,12 @@ def _adjust_report_for_shot_action(
     quality_report: VideoQualityReport,
     shot_action: str,
 ) -> VideoQualityReport:
-    if shot_action == "Likely" or quality_report.reliability != "High":
+    if shot_action == "Likely":
         return quality_report
 
     return VideoQualityReport(
         quality=quality_report.quality,
-        reliability="Good",
+        reliability="Medium",
         warnings=quality_report.warnings,
         checks=quality_report.checks,
     )
@@ -319,7 +352,7 @@ def _get_analysis_confidence(
 
 
 def _get_coach_feedback(
-    main_focus: ShootingAnalysisCategory,
+    main_focus: AnalysisMainFocus,
     pose_analysis: PoseAnalysisSummary | None,
     drill_validity_report: DrillValidityReport | None,
 ) -> str:
@@ -335,6 +368,13 @@ def _get_coach_feedback(
     return FEEDBACK_BY_FOCUS[main_focus]
 
 
+def _get_recommended_training(main_focus: AnalysisMainFocus) -> list[TrainingPlanItem]:
+    if main_focus in {"Shot Action Clarity", "Recording Clarity"}:
+        return LIMITED_PREVIEW_TRAINING
+
+    return TRAINING_BY_FOCUS[main_focus]
+
+
 def generate_mock_shooting_analysis(
     uploaded_file: UploadedFileMetadata,
     video_metadata: VideoMetadata,
@@ -345,7 +385,7 @@ def generate_mock_shooting_analysis(
 ) -> ShootingAnalysisResponse:
     overall_score = min(_generate_overall_score(), _get_score_cap(drill_validity_report))
     technical_breakdown = _generate_sub_scores(overall_score)
-    main_focus = _choose_main_focus(technical_breakdown)
+    main_focus = _get_main_focus(technical_breakdown, drill_validity_report)
     shot_action = _get_shot_action(drill_validity_report)
     adjusted_quality_report = _adjust_report_for_shot_action(video_quality_report, shot_action)
     analysis_confidence = _get_analysis_confidence(
@@ -366,10 +406,10 @@ def generate_mock_shooting_analysis(
         analysisReliability=adjusted_quality_report.reliability,
         analysisConfidence=analysis_confidence,
         mainFocus=main_focus,
-        mainFocusDescription=FOCUS_DESCRIPTIONS[main_focus],
+        mainFocusDescription=_get_main_focus_description(main_focus),
         technicalBreakdown=technical_breakdown,
         aiCoachFeedback=_get_coach_feedback(main_focus, pose_analysis, drill_validity_report),
-        recommendedTraining=TRAINING_BY_FOCUS[main_focus],
+        recommendedTraining=_get_recommended_training(main_focus),
         uploadedFile=uploaded_file,
         videoMetadata=video_metadata,
         videoQualityReport=adjusted_quality_report,

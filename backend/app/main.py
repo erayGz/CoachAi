@@ -258,7 +258,7 @@ def _with_drill_validity_adjustments(
         reliability = "Medium"
     elif drill_validity_report.status == "Unclear":
         _append_warning(warnings, "Shooting action could not be confidently verified.")
-        reliability = _cap_high_reliability(reliability)
+        reliability = "Medium"
 
     return VideoQualityReport(
         quality=report.quality,

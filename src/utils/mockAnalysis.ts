@@ -1,6 +1,7 @@
 import { G } from "./theme";
 import type {
   AnalysisLevel,
+  AnalysisMainFocus,
   AnalysisReliability,
   DrillValidityReport,
   ShootingAnalysisCategory,
@@ -96,6 +97,13 @@ const trainingByFocus: Record<ShootingAnalysisCategory, TrainingDrill[]> = {
     { name: "Weak foot finishing", reps: "3 x 6 shots", focus: "Balance" },
   ],
 };
+
+const limitedPreviewTraining: TrainingDrill[] = [
+  { name: "Record one complete shot", reps: "1 clear 3-15 sec clip", focus: "Clarity" },
+  { name: "Set a stable side angle", reps: "Side or 45-degree view", focus: "Camera" },
+  { name: "Keep ball and kicking leg visible", reps: "Before and through contact", focus: "Visibility" },
+  { name: "Review framing before upload", reps: "Full body in frame", focus: "Setup" },
+];
 
 function randomInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -212,11 +220,17 @@ function createFallbackDrillValidityReport(shotAction: string): DrillValidityRep
 
 export function generateMockShootingAnalysisResult(): ShootingAnalysisResult {
   const shotAction = generateShotAction();
-  const scoreCap = shotAction === "Not verified" ? 64 : shotAction === "Unclear" ? 79 : 94;
+  const scoreCap = shotAction === "Not verified" ? 55 : shotAction === "Unclear" ? 69 : 94;
   const overallScore = Math.min(generateOverallScore(), scoreCap);
   const technicalBreakdown = generateSubScores(overallScore);
-  const mainFocus = chooseMainFocus(technicalBreakdown);
   const drillValidityReport = createFallbackDrillValidityReport(shotAction);
+  const technicalMainFocus = chooseMainFocus(technicalBreakdown);
+  const mainFocus: AnalysisMainFocus =
+    drillValidityReport.status === "Invalid"
+      ? "Shot Action Clarity"
+      : drillValidityReport.status === "Unclear"
+        ? "Recording Clarity"
+        : technicalMainFocus;
 
   return {
     overallScore,
@@ -226,15 +240,22 @@ export function generateMockShootingAnalysisResult(): ShootingAnalysisResult {
     analysisReliability: generateReliability(shotAction),
     analysisConfidence: drillValidityReport.confidence,
     mainFocus,
-    mainFocusDescription: focusDescriptions[mainFocus],
+    mainFocusDescription:
+      mainFocus === "Shot Action Clarity"
+        ? "CoachAI could not verify a clear single-shot football action in this video."
+        : mainFocus === "Recording Clarity"
+          ? "The shooting action was not clear enough for a confident technique report. Record with full body, ball, and kicking leg visible."
+          : focusDescriptions[mainFocus],
     technicalBreakdown,
     aiCoachFeedback:
       shotAction === "Not verified"
-        ? "CoachAI could not verify that this video contains a clear football shooting action. Please upload a single-shot clip with the full body, ball, and kicking leg visible."
+        ? "CoachAI could not verify that this video contains a clear football shooting action. This result is a limited preview, not a technique score. Upload one complete shot with the full body, ball, and kicking leg visible."
         : shotAction === "Unclear"
-          ? "CoachAI found some movement cues, but the shooting action was not clear enough for confident technical feedback."
-          : feedbackByFocus[mainFocus],
-    recommendedTraining: trainingByFocus[mainFocus],
+          ? "CoachAI found some useful movement cues, but the shooting action was not clear enough for confident technical feedback. This score is a limited preview. For a better report, record one complete shot from a stable side or 45-degree angle."
+          : feedbackByFocus[technicalMainFocus],
+    recommendedTraining: mainFocus === "Shot Action Clarity" || mainFocus === "Recording Clarity"
+      ? limitedPreviewTraining
+      : trainingByFocus[mainFocus],
     drillValidityReport,
   };
 }

@@ -2,7 +2,7 @@
 
 FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
 
-This backend is intentionally limited to Phase 3-F:
+This backend is intentionally limited to Phase 3-G:
 
 - No real AI analysis
 - No authentication
@@ -221,10 +221,10 @@ The response also includes a heuristic `drillValidityReport`. This does not use 
 Drill validity affects the mocked result:
 
 - `Valid`: `detectedShots` is returned as `Likely`, and normal pose-aware confidence rules apply
-- `Unclear`: `detectedShots` is returned as `Unclear`, `analysisConfidence` is capped below `High`, and `overallScore` is capped at 79
-- `Invalid`: `detectedShots` is returned as `Not verified`, `analysisConfidence` is `Low`, `analysisReliability` is `Medium`, and `overallScore` is capped at 64
+- `Unclear`: `detectedShots` is returned as `Unclear`, `analysisConfidence` and `analysisReliability` are capped at `Medium`, and `overallScore` is capped at 69
+- `Invalid`: `detectedShots` is returned as `Not verified`, `analysisConfidence` is `Low`, `analysisReliability` is `Medium`, and `overallScore` is capped at 55
 
-Invalid and unclear clips still return an analysis response, but feedback is softened so CoachAI does not claim confident technique analysis from a clip that may not show a clear football shot.
+Invalid and unclear clips still return an analysis response, but they are treated as limited previews. Feedback is softened, the main focus switches to recording/action clarity, and CoachAI does not claim confident technique analysis from a clip that may not show a clear football shot.
 
 The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
 
