@@ -1,97 +1,94 @@
-# CoachAI Local Samples
+# CoachAI Sample Dataset Intake
 
-This folder is for local-only evaluation videos used to calibrate CoachAI's single-shot shooting analysis flow.
+This folder is for local-only football training clips used to prepare CoachAI for future model training, calibration, and validation.
 
-Video files in this folder are ignored by Git. Do not commit sample videos.
+Video files are ignored by Git. Do not commit sample videos.
 
 ## Folder Structure
 
 ```text
 samples/
   metadata.csv
+  incoming/
   invalid/
   bad/
   medium/
   good/
 ```
 
-## Categories
+## Folder Meaning
 
-### `invalid`
+### `incoming`
 
-Use for clips that should not be treated as a valid shooting drill:
-
-- Not a football shooting video
-- No clear player
-- No shot action
-- Wrong duration
-- Broken or unreadable video
-
-Expected outcome: usually `Invalid` with `Low` confidence.
+Raw or unprocessed external samples from dataset providers. These clips may not be reviewed, labeled, or approved yet.
 
 ### `bad`
 
-Use for shooting clips with major recording issues:
-
-- Shooting video exists but poor framing
-- Body partially visible
-- Camera shaky
-- Ball or kicking leg hard to see
-
-Expected outcome: usually `Unclear` or `Low` confidence.
+Usable football samples with bad technique, poor recording quality, or difficult framing.
 
 ### `medium`
 
-Use for usable but imperfect shooting clips:
-
-- Mostly visible player
-- Ball visible
-- Acceptable angle
-
-Expected outcome: usually `Unclear` or `Valid` with `Medium` confidence.
+Usable football samples with acceptable technique or recording quality, but not ideal.
 
 ### `good`
 
-Use for clear single-shot football clips:
+Usable football samples with clear technique, strong recording quality, and useful framing.
 
-- Full body visible
-- Ball and kicking leg visible
-- Fixed camera
-- Side or 45-degree angle
+### `invalid`
 
-Expected outcome: usually `Valid` with `Medium` or `High` confidence.
+Unusable samples, permission problems, unclear videos, wrong duration, missing metadata, broken files, or clips outside the expected football movement scope.
+
+## Accepted Sample Rules
+
+- 3-15 seconds
+- Single player preferred
+- Single football action or drill preferred
+- Ball and lower body should be visible when possible
+- Stable camera preferred
+- No private or sensitive content
+- Permission or consent is required before use
+- Labels should be `bad`, `medium`, `good`, `unlabeled`, or `invalid`
 
 ## metadata.csv
 
-`metadata.csv` tracks expected outcomes manually. Keep it clean CSV with this header:
+`metadata.csv` tracks source, permission, labels, movement type, camera angle, duration, and review confidence.
+
+Required header:
 
 ```csv
-filename,category,expected_validity,expected_confidence,notes
+file_name,relative_path,source,permission_status,movement_type,quality_label,camera_angle,duration_seconds,player_age_group,analysis_confidence,notes
 ```
 
-Example rows:
+Allowed values:
 
-```csv
-invalid/random-park-clip.mp4,invalid,Invalid,Low,No football shot action
-bad/cropped-shot.mov,bad,Unclear,Medium,Player is partially cropped
-medium/usable-side-angle.mp4,medium,Unclear,Medium,Ball visible but pose confidence varies
-good/clear-single-shot.mp4,good,Valid,High,Full body and ball visible
-```
+- `source`: `manual_sample`, `provider_pending`, `provider_approved`, `synthetic_demo`, `unknown`
+- `permission_status`: `approved`, `pending`, `rejected`, `internal_demo_only`, `unknown`
+- `movement_type`: `shooting`, `passing`, `dribbling`, `sprinting`, `ball_control`, `agility`, `unknown`
+- `quality_label`: `bad`, `medium`, `good`, `unlabeled`, `invalid`
+- `camera_angle`: `front`, `side`, `rear`, `diagonal`, `unknown`
+- `player_age_group`: `u12`, `u14`, `u16`, `u18`, `adult`, `unknown`
+- `analysis_confidence`: `high`, `medium`, `low`, `unknown`
 
-## Privacy
+## Dataset Provider Workflow
 
-Use local test clips only. Do not upload personal or child videos without clear consent from the player or guardian.
+1. Put raw files in `samples/incoming/`.
+2. Add rows to `samples/metadata.csv`.
+3. Run the validation script.
+4. Review warnings.
+5. Move usable clips into `bad/`, `medium/`, or `good/`.
+6. Move unusable clips into `invalid/`.
+7. Keep `source` and `permission_status` updated.
 
-## Evaluation
+## Validation
 
-Run the backend first, then use:
+Run:
 
 ```bash
 python backend/scripts/evaluate_samples.py
 ```
 
-Optional backend URL:
+The validator checks metadata structure, allowed values, path/label consistency, duration ranges, permission status, missing files, and files missing metadata. Normal dataset warnings do not fail the script. Serious structural problems, such as missing `metadata.csv` or required columns, return a non-zero exit code.
 
-```bash
-python backend/scripts/evaluate_samples.py --backend-url http://127.0.0.1:8000
-```
+## Privacy And Consent
+
+Use local test clips only. Do not upload personal, private, sensitive, or child videos without clear consent from the player or guardian. Do not add provider details unless the provider has approved that information for project use.

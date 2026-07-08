@@ -8,3 +8,4 @@ samples/**/*.mkv
 samples/**/*.webm
 !samples/README.md
 !samples/metadata.csv
+!samples/**/.gitkeep

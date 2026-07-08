@@ -33,6 +33,8 @@ Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-b
 - Daily and weekly quests
 - Badges for healthy training milestones
 - Progress summaries in Dashboard, Results, and Profile
+- Dataset intake metadata validation
+- Local incoming/provider sample workflow
 - Authentication
 - Cloud video storage
 - Database
@@ -41,6 +43,17 @@ Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-b
 - Training plans
 
 Phase 4-A adds the local-only serious game foundation first: XP, levels, quests, badges, streaks, and progress summaries stored in localStorage. It is intentionally lightweight and encourages short, quality-focused practice rather than repetitive uploads. Future Phase 4 work can move progression to a real user account once authentication and a database exist.
+
+Phase 4-B adds the dataset intake and validation workflow. Next steps after this phase:
+
+- Wait for dataset provider replies
+- Confirm permission and usage scope
+- Import sample clips into `samples/incoming/`
+- Fill `samples/metadata.csv`
+- Run validation
+- Label usable clips into `bad`, `medium`, or `good`
+- Move unusable clips into `invalid`
+- Later: add a feedback system, personalized training recommendations, and export to model-ready format
 
 ## Phase 5: Expansion
 

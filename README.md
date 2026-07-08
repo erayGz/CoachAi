@@ -27,6 +27,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Pose detection scaffold
 - Heuristic shooting drill validity checks
 - Local-only samples dataset and evaluation runner
+- Dataset intake metadata validation
 - Analysis confidence labels
 - Backend duration validation
 - Metadata-aware video quality and reliability
@@ -84,24 +85,29 @@ Backend endpoints:
 
 The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, returns up to 10 lightweight sampled frame metadata records, and can use up to 20 internal pose candidate frames chosen from a mix of evenly spaced and high-motion frames. When `backend/models/pose_landmarker_lite.task` exists, the backend runs optional MediaPipe Tasks Pose Landmarker detection, validates that duration is 3-15 seconds, estimates whether the clip matches the single-shot shooting drill requirements, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `drillValidityReport`, `sampledFrames`, optional `poseAnalysis`, and `analysisConfidence`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
 
-## Local Sample Evaluation
+## Dataset Intake And Validation
 
-Local test videos can be organized under `samples/`:
+CoachAI can prepare incoming external football training clips before real model training. Samples are tracked with `samples/metadata.csv`, including source, permission status, movement type, quality label, camera angle, duration, and review confidence.
+
+Local clips can be organized under `samples/`:
 
 ```text
+samples/incoming/
 samples/invalid/
 samples/bad/
 samples/medium/
 samples/good/
 ```
 
-Video files in `samples/` are ignored by Git. Add expected outcomes to `samples/metadata.csv`, then run the backend and evaluate:
+Video files in `samples/` are ignored by Git. Provider clips should start in `samples/incoming/`, then move to `bad/`, `medium/`, `good/`, or `invalid/` after metadata review. `source` and `permission_status` are required for future dataset safety.
+
+Run the dataset validation script with:
 
 ```bash
 python backend/scripts/evaluate_samples.py
 ```
 
-The runner helps calibrate drill validity, confidence, and future scoring behavior without committing video files.
+The validator checks required columns, allowed values, permissions, duration ranges, label/path consistency, missing files, and files missing metadata.
 
 ## Local Progression
 

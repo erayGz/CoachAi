@@ -133,7 +133,7 @@ Phase 3-F adds heuristic shooting drill validity checks. The backend estimates w
 
 Phase 3-G makes unclear and invalid drill results safer. `Unclear` and `Invalid` responses are treated as limited previews, with stricter score caps, safer main focus labels, and softened feedback. Real ball detection is still required before CoachAI can make stronger shot-validity decisions.
 
-Phase 3-H adds a local-only samples dataset and evaluation runner. Videos are organized under `samples/invalid`, `samples/bad`, `samples/medium`, and `samples/good`, while `samples/metadata.csv` records expected validity and confidence outcomes. Video files are ignored by Git. The evaluation runner posts each listed sample to the running backend and prints expected vs actual results so drill validity, confidence, and future scoring can be calibrated systematically.
+Phase 3-H adds a local-only samples dataset and evaluation runner. Phase 4-B expands that into a dataset intake layer. Videos are organized under `samples/incoming`, `samples/invalid`, `samples/bad`, `samples/medium`, and `samples/good`, while `samples/metadata.csv` records source, permission, movement type, quality label, camera angle, duration, and review confidence. Video files are ignored by Git.
 
 Pose Landmarker expects the local model file at:
 
@@ -226,23 +226,39 @@ The generator:
 
 This gives the demo realistic variation while metadata extraction prepares the backend for later real analysis.
 
-## Local Sample Evaluation
+## Dataset Intake Layer
 
-The `samples/` folder is for local calibration only:
+The `samples/` folder prepares external football training clips before they are used for calibration, evaluation, or future model training. It is not part of the current runtime analysis path and does not change the `/analyze/shooting` API.
 
+- `samples/incoming`
 - `samples/invalid`
 - `samples/bad`
 - `samples/medium`
 - `samples/good`
 - `samples/metadata.csv`
 
-The backend evaluation script lives at:
+`samples/incoming` is for raw provider clips that still need metadata and permission review. Usable clips move into `bad`, `medium`, or `good` after review. Unusable clips, permission problems, wrong-duration clips, unclear videos, and missing-metadata cases move into `invalid`.
+
+`metadata.csv` tracks:
+
+- File name and relative path
+- Source
+- Permission status
+- Movement type
+- Quality label
+- Camera angle
+- Duration
+- Player age group
+- Analysis confidence
+- Notes
+
+The dataset validation script lives at:
 
 ```text
 backend/scripts/evaluate_samples.py
 ```
 
-It reads `samples/metadata.csv`, locates local video files, sends them to the running backend, and compares expected validity and confidence with the actual `drillValidityReport` and `analysisConfidence`. It does not store videos, change backend behavior, or add a database. This workflow is intended to calibrate heuristic drill validity now and real scoring later.
+It reads `samples/metadata.csv`, checks required columns and allowed values, validates duration and permission metadata, checks label/path consistency, reports missing files, and warns when files inside sample folders do not have metadata rows. Normal dataset warnings do not fail the script. Serious structural problems, such as missing metadata or required columns, return a non-zero exit code.
 
 ## localStorage History
 

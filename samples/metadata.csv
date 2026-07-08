@@ -1,1 +1,5 @@
-filename,category,expected_validity,expected_confidence,notes
+file_name,relative_path,source,permission_status,movement_type,quality_label,camera_angle,duration_seconds,player_age_group,analysis_confidence,notes
+demo_single_shot_good.mp4,good/demo_single_shot_good.mp4,synthetic_demo,internal_demo_only,shooting,good,diagonal,8.5,adult,high,Synthetic placeholder row for clear single-shot demo footage
+provider_clip_pending_001.mp4,incoming/provider_clip_pending_001.mp4,provider_pending,pending,shooting,unlabeled,unknown,,unknown,unknown,Pending provider sample placeholder; duration unknown until file review
+cropped_shot_bad.mp4,bad/cropped_shot_bad.mp4,manual_sample,approved,shooting,bad,side,6.2,adult,low,Player lower body partly cropped but action is usable for quality calibration
+random_non_football_clip.mp4,invalid/random_non_football_clip.mp4,manual_sample,rejected,unknown,invalid,unknown,12.0,unknown,low,Invalid placeholder row for non-football or unusable video
