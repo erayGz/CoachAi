@@ -7,6 +7,7 @@ import type {
   AnalysisConfidence,
   AnalysisReliability,
   AppScreenProps,
+  AnalysisRewardSummary,
   DrillValidityReport,
   DrillValidityStatus,
   PoseAnalysisSummary,
@@ -77,6 +78,8 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             </div>
           </div>
         </div>
+
+        {currentAnalysisSession.rewardSummary && <ProgressEarnedCard rewardSummary={currentAnalysisSession.rewardSummary} />}
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
         {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} analysisConfidence={result.analysisConfidence} />}
@@ -198,6 +201,69 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProgressEarnedCard({ rewardSummary }: { rewardSummary: AnalysisRewardSummary }) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.greenBorder}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.green }}>
+            Progress Earned
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: G.whiteDim }}>
+            One clear shot is better than rushed uploads.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[24px] font-black leading-none" style={{ color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            +{rewardSummary.xpEarned}
+          </p>
+          <p className="text-[9px] font-bold mt-1" style={{ color: G.muted }}>
+            XP
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <VideoInfoItem label="Current Level" value={`Level ${rewardSummary.currentLevel}`} />
+        <VideoInfoItem label="Weekly Quest" value={`${Math.min(3, rewardSummary.weeklyQuestProgress)}/3`} />
+      </div>
+
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: G.card2 }}>
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${rewardSummary.levelProgress.progressPercent}%`,
+            background: `linear-gradient(90deg, ${G.green} 0%, ${G.blue} 100%)`,
+          }}
+        />
+      </div>
+      <p className="text-[9px] mt-1.5" style={{ color: G.muted }}>
+        {Math.max(0, rewardSummary.levelProgress.nextLevelXp - rewardSummary.totalXp)} XP to Level {rewardSummary.levelProgress.nextLevel}
+      </p>
+
+      {rewardSummary.newlyUnlockedBadges.length > 0 && (
+        <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${G.greenBorder}` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: G.green }}>
+            Badges Unlocked
+          </p>
+          <div className="space-y-1.5">
+            {rewardSummary.newlyUnlockedBadges.map((badge) => (
+              <div key={badge.id} className="rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+                <p className="text-[11px] font-black" style={{ color: G.white }}>
+                  {badge.name}
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: G.whiteDim }}>
+                  {badge.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

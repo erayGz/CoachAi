@@ -29,7 +29,7 @@ Mocked app metadata, profile data, analysis defaults, training drills, and other
 
 ### `src/types`
 
-Shared TypeScript types for screens, navigation, video validation, analysis sessions, analysis results, history items, and UI data.
+Shared TypeScript types for screens, navigation, video validation, analysis sessions, analysis results, history items, gamification state, rewards, and UI data.
 
 ### `src/utils`
 
@@ -40,6 +40,8 @@ Utility logic for:
 - Mock analysis generation
 - localStorage history
 - History stats helpers
+- Gamification calculations
+- Gamification localStorage helpers
 - Session utilities
 - Navigation helpers
 - Theme constants
@@ -62,8 +64,9 @@ When processing completes, the app:
 - Stores the backend result in session state
 - Marks the session as completed
 - Saves the result to localStorage history once
+- Applies local progression rewards once and stores the reward summary on the completed session
 
-This prevents duplicate saves if Processing remounts or the user navigates around the app.
+This prevents duplicate history saves and duplicate XP rewards if Processing remounts or the user navigates around the app.
 
 ## Video Validation
 
@@ -256,6 +259,41 @@ Each history item includes the session id, date/time, module name, drill name, o
 If present, saved history also preserves `analysisConfidence`, `drillValidityReport`, `videoMetadata`, `videoQualityReport`, `sampledFrames`, and `poseAnalysis` for future screens or backend integration work.
 
 Duplicate history items are prevented by checking the saved item id before writing to localStorage.
+
+## localStorage Progression
+
+Phase 4-A adds a local-only serious game foundation for MVP demos. It does not change the backend API, scoring pipeline, or history format.
+
+Progression is saved under:
+
+```text
+coachai.gamification
+```
+
+The state includes:
+
+- Total XP
+- Current level
+- Current streak
+- Analyses completed
+- Daily quest completion
+- Weekly quest progress
+- Unlocked badges
+- Rewarded analysis ids
+
+Rewards are applied in the app completion flow after a backend result is saved to history. The completed analysis session stores a `rewardSummary`, which lets the Results screen show the XP and badges earned for that specific result.
+
+Duplicate XP is prevented with `rewardedAnalysisIds`. If the same analysis id is processed again, the progression helper returns an already-rewarded summary and does not add XP, quests, streaks, or badges again.
+
+XP is currently calculated from demo-friendly signals:
+
+- Base XP for completing an analysis
+- Bonus XP for stronger scores
+- Bonus XP for valid drill clips
+- Bonus XP for medium or high confidence
+- Bonus XP when the shot action is likely detected
+
+Badges currently cover first analysis, three analyses completed, focus-area improvements, clean video quality, and consistent training. Dashboard shows the player progress, daily quest, weekly quest, streak, and XP bar. Results shows the reward earned for the completed analysis. Profile shows level progress and unlocked badges.
 
 ## Guarded Screens
 

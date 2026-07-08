@@ -1,6 +1,8 @@
 import { ChevronRight, Lock, Target } from "lucide-react";
 import { BottomNav, FieldGrid, GlowOrb, StatCard } from "../components";
 import { activeModuleLabel } from "../data/appMeta";
+import { getLevelProgress, isSameDay } from "../utils/gamification";
+import { getGamificationState } from "../utils/gamificationStorage";
 import { formatHistoryDateTime, getAnalysisHistory } from "../utils/historyStorage";
 import { G } from "../utils/theme";
 import type { AnalysisHistoryItem, ScreenProps, StatItem } from "../types";
@@ -9,6 +11,11 @@ export function DashboardScreen({ go }: ScreenProps) {
   const historyItems = getAnalysisHistory();
   const recentSessions = historyItems.slice(0, 3);
   const statsRow = getDashboardStats(historyItems);
+  const gamificationState = getGamificationState();
+  const levelProgress = getLevelProgress(gamificationState.totalXp);
+  const dailyQuestCompleted = gamificationState.dailyQuestCompletedDate
+    ? isSameDay(gamificationState.dailyQuestCompletedDate, new Date())
+    : false;
 
   return (
     <div className="coachai-has-bottom-nav flex flex-col h-full">
@@ -39,6 +46,14 @@ export function DashboardScreen({ go }: ScreenProps) {
           <div className="coachai-dashboard-stats grid grid-cols-3 gap-2.5">
             {statsRow.map((stat) => <StatCard key={stat.label} {...stat} className="coachai-dashboard-stat" />)}
           </div>
+
+          <PlayerProgressCard
+            totalXp={gamificationState.totalXp}
+            currentStreak={gamificationState.currentStreak}
+            levelProgress={levelProgress}
+            dailyQuestCompleted={dailyQuestCompleted}
+            weeklyQuestProgress={gamificationState.weeklyQuestProgress}
+          />
 
           <button
             onClick={() => go("shooting-guide")}
@@ -146,6 +161,77 @@ export function DashboardScreen({ go }: ScreenProps) {
         </div>
       </div>
       <BottomNav active="dashboard" onNav={go} />
+    </div>
+  );
+}
+
+function PlayerProgressCard({
+  totalXp,
+  currentStreak,
+  levelProgress,
+  dailyQuestCompleted,
+  weeklyQuestProgress,
+}: {
+  totalXp: number;
+  currentStreak: number;
+  levelProgress: ReturnType<typeof getLevelProgress>;
+  dailyQuestCompleted: boolean;
+  weeklyQuestProgress: number;
+}) {
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Player Progress
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: G.whiteDim }}>
+            Focus on quality, not endless repetitions.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[24px] font-black leading-none" style={{ color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            L{levelProgress.currentLevel}
+          </p>
+          <p className="text-[9px] font-bold mt-1" style={{ color: G.muted }}>
+            {totalXp} XP
+          </p>
+        </div>
+      </div>
+
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: G.card2 }}>
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${levelProgress.progressPercent}%`,
+            background: `linear-gradient(90deg, ${G.green} 0%, ${G.blue} 100%)`,
+          }}
+        />
+      </div>
+      <div className="flex justify-between mt-1.5 text-[9px]" style={{ color: G.muted }}>
+        <span>Level {levelProgress.currentLevel}</span>
+        <span>{Math.max(0, levelProgress.nextLevelXp - totalXp)} XP to Level {levelProgress.nextLevel}</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mt-3">
+        <QuestMiniCard label="Current Streak" value={`${currentStreak} day${currentStreak === 1 ? "" : "s"}`} />
+        <QuestMiniCard label="Daily Quest" value={dailyQuestCompleted ? "Completed today" : "Complete 1 single-shot analysis"} />
+        <QuestMiniCard label="Weekly Quest" value={`${Math.min(3, weeklyQuestProgress)}/3 analyses this week`} />
+        <QuestMiniCard label="Training Note" value="Rest days count too." />
+      </div>
+    </div>
+  );
+}
+
+function QuestMiniCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+      <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: G.muted }}>
+        {label}
+      </p>
+      <p className="text-[11px] font-semibold mt-1 leading-snug" style={{ color: G.whiteDim }}>
+        {value}
+      </p>
     </div>
   );
 }

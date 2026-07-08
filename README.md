@@ -34,6 +34,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - Local history tracking
 - Profile stats from saved analyses
 - History filters
+- Local XP, levels, quests, and badges
 
 ## Tech Stack
 
@@ -102,6 +103,18 @@ python backend/scripts/evaluate_samples.py
 
 The runner helps calibrate drill validity, confidence, and future scoring behavior without committing video files.
 
+## Local Progression
+
+CoachAI includes a local-only serious game foundation for MVP demos:
+
+- XP awarded after completed analyses
+- Player levels and level progress
+- Daily quest: complete 1 single-shot analysis
+- Weekly quest: complete 3 analyses this week
+- Badges for first analysis, consistency, focus areas, and clean video quality
+
+Progression is saved on this device in localStorage under `coachai.gamification`. It is not connected to authentication, a database, or cloud sync yet.
+
 ## Manual Demo Flow
 
 Splash → Dashboard → Shooting Guide → Video Upload → Processing → Results → History → Profile
@@ -118,6 +131,7 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Invalid or unclear clips lower confidence, cap scores, and avoid overconfident feedback
 - Low or partial pose detection produces more cautious feedback
 - Local samples are for calibration only and are not committed
+- XP, quests, streaks, and badges are local-only and can be cleared from browser storage
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 

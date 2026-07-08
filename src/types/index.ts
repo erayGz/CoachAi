@@ -168,6 +168,55 @@ export type AnalysisHistoryItem = {
   poseAnalysis?: PoseAnalysisSummary | null;
 };
 
+export type BadgeId =
+  | "first-shot-analysis"
+  | "three-analyses-completed"
+  | "accuracy-builder"
+  | "follow-through-fixer"
+  | "clean-video"
+  | "consistent-trainer";
+
+export type Badge = {
+  id: BadgeId;
+  name: string;
+  description: string;
+};
+
+export type LevelProgress = {
+  currentLevel: number;
+  currentLevelXp: number;
+  nextLevel: number;
+  nextLevelXp: number;
+  progressPercent: number;
+};
+
+export type GamificationState = {
+  totalXp: number;
+  analysesCompleted: number;
+  currentLevel: number;
+  currentStreak: number;
+  lastAnalysisDate: string | null;
+  unlockedBadges: BadgeId[];
+  dailyQuestCompletedDate: string | null;
+  weeklyQuestProgress: number;
+  weeklyQuestAnchorDate: string | null;
+  rewardedAnalysisIds: string[];
+  analysisDates: string[];
+};
+
+export type AnalysisRewardSummary = {
+  analysisId: string;
+  xpEarned: number;
+  totalXp: number;
+  previousLevel: number;
+  currentLevel: number;
+  levelProgress: LevelProgress;
+  newlyUnlockedBadges: Badge[];
+  dailyQuestCompleted: boolean;
+  weeklyQuestProgress: number;
+  alreadyRewarded: boolean;
+};
+
 export type ProfileField = {
   label: string;
   value: string;
@@ -219,6 +268,7 @@ export type AnalysisSession = {
   historyItemId?: string;
   savedToHistory: boolean;
   result?: ShootingAnalysisResult;
+  rewardSummary?: AnalysisRewardSummary;
 };
 
 export type VideoValidationError =

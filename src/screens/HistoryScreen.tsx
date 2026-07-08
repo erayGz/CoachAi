@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Upload } from "lucide-react";
 import { BottomNav, StatCard } from "../components";
+import { clearGamificationState } from "../utils/gamificationStorage";
 import { clearAnalysisHistory, formatHistoryDateTime, getAnalysisHistory } from "../utils/historyStorage";
 import { filterHistoryItems, getHistorySummary, historyFilters, type HistoryFilter } from "../utils/historyStats";
 import { G } from "../utils/theme";
@@ -24,6 +25,7 @@ export function HistoryScreen({ go }: ScreenProps) {
 
   function handleClearHistory() {
     clearAnalysisHistory();
+    clearGamificationState();
     setHistoryItems([]);
   }
 

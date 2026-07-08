@@ -3,6 +3,8 @@ import { useState } from "react";
 import { BottomNav, FieldGrid, GlowOrb, StatCard } from "../components";
 import { activeModuleLabel, appMeta } from "../data/appMeta";
 import { playerProfile, playerProfileFields, privacyConsentItems } from "../data/playerProfile";
+import { badges, getLevelProgress } from "../utils/gamification";
+import { getGamificationState } from "../utils/gamificationStorage";
 import { getAnalysisHistory } from "../utils/historyStorage";
 import { getHistorySummary } from "../utils/historyStats";
 import { G } from "../utils/theme";
@@ -12,6 +14,9 @@ const profileActionFeedback = "Coming soon in a future version.";
 
 export function ProfileScreen({ go }: ScreenProps) {
   const profileStats = getProfileStats();
+  const gamificationState = getGamificationState();
+  const levelProgress = getLevelProgress(gamificationState.totalXp);
+  const unlockedBadges = badges.filter((badge) => gamificationState.unlockedBadges.includes(badge.id));
   const [actionFeedback, setActionFeedback] = useState("");
 
   function showActionFeedback() {
@@ -58,6 +63,72 @@ export function ProfileScreen({ go }: ScreenProps) {
         <div className="px-5 space-y-4 mt-4">
           <div className="grid grid-cols-2 gap-2.5">
             {profileStats.map((stat) => <StatCard key={stat.label} {...stat} className="text-left" />)}
+          </div>
+
+          <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+            <div className="px-4 py-3 flex items-center justify-between gap-3" style={{ borderBottom: `1px solid ${G.border}` }}>
+              <div>
+                <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+                  Progression
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: G.whiteDim }}>
+                  Rest days count too.
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[22px] font-black leading-none" style={{ color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>
+                  L{levelProgress.currentLevel}
+                </p>
+                <p className="text-[9px] font-bold mt-1" style={{ color: G.muted }}>
+                  {gamificationState.totalXp} XP
+                </p>
+              </div>
+            </div>
+            <div className="px-4 py-3.5 space-y-3">
+              <div>
+                <div className="h-2 rounded-full overflow-hidden" style={{ background: G.card2 }}>
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${levelProgress.progressPercent}%`,
+                      background: `linear-gradient(90deg, ${G.green} 0%, ${G.blue} 100%)`,
+                    }}
+                  />
+                </div>
+                <p className="text-[9px] mt-1.5" style={{ color: G.muted }}>
+                  {Math.max(0, levelProgress.nextLevelXp - gamificationState.totalXp)} XP to Level {levelProgress.nextLevel}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <ProgressStat label="Current Streak" value={`${gamificationState.currentStreak} day${gamificationState.currentStreak === 1 ? "" : "s"}`} />
+                <ProgressStat label="Analyses" value={String(gamificationState.analysesCompleted)} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black tracking-widest uppercase mb-2" style={{ color: G.muted }}>
+                  Badges
+                </p>
+                {unlockedBadges.length > 0 ? (
+                  <div className="space-y-1.5">
+                    {unlockedBadges.map((badge) => (
+                      <div key={badge.id} className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+                        <p className="text-[11px] font-black" style={{ color: G.white }}>
+                          {badge.name}
+                        </p>
+                        <p className="text-[10px] mt-0.5" style={{ color: G.muted }}>
+                          {badge.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] leading-relaxed" style={{ color: G.muted }}>
+                    Complete your first shooting analysis to unlock badges.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
@@ -140,6 +211,19 @@ export function ProfileScreen({ go }: ScreenProps) {
         </div>
       </div>
       <BottomNav active="profile" onNav={go} />
+    </div>
+  );
+}
+
+function ProgressStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+      <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: G.muted }}>
+        {label}
+      </p>
+      <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+        {value}
+      </p>
     </div>
   );
 }
