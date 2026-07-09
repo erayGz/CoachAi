@@ -24,8 +24,8 @@ export const badges: Badge[] = [
   },
   {
     id: "clean-video",
-    name: "Clean Video",
-    description: "Uploaded a clear video with usable analysis confidence.",
+    name: "Clean Shooting Clip",
+    description: "Uploaded a clear, verified shooting clip with usable analysis confidence.",
   },
   {
     id: "consistent-trainer",
@@ -37,8 +37,27 @@ export const badges: Badge[] = [
 const levelThresholds = [0, 250, 600, 1000, 1500, 2100, 2800];
 
 export function calculateAnalysisXp(result: ShootingAnalysisResult) {
-  let xp = 50;
+  const drillValidityStatus = result.drillValidityReport?.status ?? "Unclear";
 
+  if (drillValidityStatus === "Invalid") {
+    return 10;
+  }
+
+  if (drillValidityStatus === "Unclear") {
+    let xp = 30;
+
+    if (result.analysisConfidence === "Medium") {
+      xp += 10;
+    }
+
+    if (result.detectedShots === "Likely") {
+      xp += 10;
+    }
+
+    return xp;
+  }
+
+  let xp = 50;
   if (result.overallScore >= 65) {
     xp += 20;
   }
@@ -47,9 +66,7 @@ export function calculateAnalysisXp(result: ShootingAnalysisResult) {
     xp += 40;
   }
 
-  if (result.drillValidityReport?.status === "Valid") {
-    xp += 20;
-  }
+  xp += 20;
 
   if (result.analysisConfidence === "High") {
     xp += 20;
@@ -127,16 +144,22 @@ export function getWeekAnchorDate(date: Date | string) {
 
 export function getBadgeIdsForAnalysis(result: ShootingAnalysisResult): BadgeId[] {
   const badgeIds: BadgeId[] = [];
+  const isValidResult = result.drillValidityReport?.status === "Valid";
 
-  if (result.mainFocus === "Accuracy") {
+  if (isValidResult && result.mainFocus === "Accuracy") {
     badgeIds.push("accuracy-builder");
   }
 
-  if (result.mainFocus === "Follow-through") {
+  if (isValidResult && result.mainFocus === "Follow-through") {
     badgeIds.push("follow-through-fixer");
   }
 
-  if ((result.videoQuality === "Good" || result.videoQuality === "Excellent") && result.analysisConfidence !== "Low") {
+  if (
+    isValidResult &&
+    (result.videoQuality === "Good" || result.videoQuality === "Excellent") &&
+    result.analysisConfidence !== "Low" &&
+    formatShotAction(result) === "Likely"
+  ) {
     badgeIds.push("clean-video");
   }
 

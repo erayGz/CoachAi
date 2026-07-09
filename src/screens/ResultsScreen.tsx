@@ -83,7 +83,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           </div>
         </div>
 
-        {currentAnalysisSession.rewardSummary && <ProgressEarnedCard rewardSummary={currentAnalysisSession.rewardSummary} />}
+        {currentAnalysisSession.rewardSummary && <ProgressEarnedCard rewardSummary={currentAnalysisSession.rewardSummary} result={result} />}
         {currentAnalysisSession.skillRewardSummary && (
           <SkillProgressCard skillRewardSummary={currentAnalysisSession.skillRewardSummary} result={result} />
         )}
@@ -212,7 +212,13 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   );
 }
 
-function ProgressEarnedCard({ rewardSummary }: { rewardSummary: AnalysisRewardSummary }) {
+function ProgressEarnedCard({
+  rewardSummary,
+  result,
+}: {
+  rewardSummary: AnalysisRewardSummary;
+  result: ShootingAnalysisResult;
+}) {
   return (
     <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.greenBorder}` }}>
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -221,7 +227,7 @@ function ProgressEarnedCard({ rewardSummary }: { rewardSummary: AnalysisRewardSu
             Progress Earned
           </p>
           <p className="text-[11px] mt-1" style={{ color: G.whiteDim }}>
-            One clear shot is better than rushed uploads.
+            {getProgressEarnedCopy(result.drillValidityReport?.status ?? "Unclear")}
           </p>
         </div>
         <div className="text-right">
@@ -273,6 +279,18 @@ function ProgressEarnedCard({ rewardSummary }: { rewardSummary: AnalysisRewardSu
       )}
     </div>
   );
+}
+
+function getProgressEarnedCopy(status: DrillValidityStatus) {
+  if (status === "Invalid") {
+    return "Small progress saved. Upload a clear single-shot clip for a full report.";
+  }
+
+  if (status === "Unclear") {
+    return "Effort rewarded. Upload a clearer shooting clip to earn full training XP.";
+  }
+
+  return "One clear shot is better than rushed uploads.";
 }
 
 function SkillProgressCard({
