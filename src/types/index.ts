@@ -217,6 +217,52 @@ export type AnalysisRewardSummary = {
   alreadyRewarded: boolean;
 };
 
+export type SkillId =
+  | "approach-balance"
+  | "plant-foot-position"
+  | "body-posture"
+  | "contact-mechanics"
+  | "follow-through"
+  | "accuracy"
+  | "recording-clarity"
+  | "shot-action-clarity";
+
+export type SkillStatus = "locked" | "active" | "developing" | "strong";
+
+export type SkillNode = {
+  id: SkillId;
+  name: AnalysisMainFocus;
+  description: string;
+  xp: number;
+  level: number;
+  progressPercent: number;
+  status: SkillStatus;
+};
+
+export type SkillTreeState = {
+  skills: SkillNode[];
+  lastUpdatedAt: string | null;
+  recommendedFocusSkillId: SkillId | null;
+  rewardedSkillAnalysisIds: string[];
+};
+
+export type SkillRewardSummary = {
+  skillId: SkillId;
+  skillName: string;
+  xpEarned: number;
+  previousLevel: number;
+  newLevel: number;
+  leveledUp: boolean;
+};
+
+export type SkillTreeRewardResult = {
+  analysisId: string;
+  rewards: SkillRewardSummary[];
+  skillTreeState: SkillTreeState;
+  recommendedFocusSkillId: SkillId | null;
+  alreadyRewarded: boolean;
+};
+
 export type ProfileField = {
   label: string;
   value: string;
@@ -269,6 +315,7 @@ export type AnalysisSession = {
   savedToHistory: boolean;
   result?: ShootingAnalysisResult;
   rewardSummary?: AnalysisRewardSummary;
+  skillRewardSummary?: SkillTreeRewardResult;
 };
 
 export type VideoValidationError =

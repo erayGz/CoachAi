@@ -11,6 +11,7 @@ import { initialScreen, screenRegistry } from "../utils/navigation";
 import { createAnalysisSessionId } from "../utils/session";
 import { saveAnalysisToHistory } from "../utils/historyStorage";
 import { applyAnalysisRewards } from "../utils/gamificationStorage";
+import { applyAnalysisSkillRewards } from "../utils/skillTreeStorage";
 import { G } from "../utils/theme";
 import type { AnalysisSession, AppScreenProps, Screen, ShootingAnalysisResult, VideoValidationResult } from "../types";
 
@@ -85,6 +86,7 @@ export default function App() {
       return {
         ...completedSession,
         rewardSummary: applyAnalysisRewards(result),
+        skillRewardSummary: applyAnalysisSkillRewards(result),
       };
     });
   }

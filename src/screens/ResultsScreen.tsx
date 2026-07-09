@@ -1,6 +1,7 @@
 import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
 import { formatShotAction, shotActionLooksLikely } from "../utils/analysisResult";
+import { getNextTrainingStep, getSkillNodeById } from "../utils/skillTree";
 import { G } from "../utils/theme";
 import type {
   AnalysisLevel,
@@ -12,6 +13,9 @@ import type {
   DrillValidityStatus,
   PoseAnalysisSummary,
   PoseQuality,
+  ShootingAnalysisResult,
+  SkillRewardSummary,
+  SkillTreeRewardResult,
   TrainingDrill,
   VideoMetadata,
   VideoQuality,
@@ -80,6 +84,9 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
         </div>
 
         {currentAnalysisSession.rewardSummary && <ProgressEarnedCard rewardSummary={currentAnalysisSession.rewardSummary} />}
+        {currentAnalysisSession.skillRewardSummary && (
+          <SkillProgressCard skillRewardSummary={currentAnalysisSession.skillRewardSummary} result={result} />
+        )}
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
         {result.videoQualityReport && <VideoQualityChecksCard report={result.videoQualityReport} analysisConfidence={result.analysisConfidence} />}
@@ -266,6 +273,115 @@ function ProgressEarnedCard({ rewardSummary }: { rewardSummary: AnalysisRewardSu
       )}
     </div>
   );
+}
+
+function SkillProgressCard({
+  skillRewardSummary,
+  result,
+}: {
+  skillRewardSummary: SkillTreeRewardResult;
+  result: ShootingAnalysisResult;
+}) {
+  const recommendedFocus = getSkillNodeById(skillRewardSummary.skillTreeState, skillRewardSummary.recommendedFocusSkillId);
+  const trainingStep = getNextTrainingStep(result, skillRewardSummary.skillTreeState);
+  const validityStatus = result.drillValidityReport?.status ?? "Unclear";
+  const totalSkillXp = skillRewardSummary.rewards.reduce((total, reward) => total + reward.xpEarned, 0);
+  const leveledUpRewards = skillRewardSummary.rewards.filter((reward) => reward.leveledUp);
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Skill Progress
+          </p>
+          <p className="text-[11px] mt-1" style={{ color: G.whiteDim }}>
+            {getSkillProgressCopy(validityStatus)}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[22px] font-black leading-none" style={{ color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            +{totalSkillXp}
+          </p>
+          <p className="text-[9px] font-bold mt-1" style={{ color: G.muted }}>
+            Skill XP
+          </p>
+        </div>
+      </div>
+
+      {skillRewardSummary.rewards.length > 0 ? (
+        <div className="grid grid-cols-2 gap-2">
+          {skillRewardSummary.rewards.map((reward) => <SkillRewardItem key={reward.skillId} reward={reward} />)}
+        </div>
+      ) : (
+        <p className="text-[11px] leading-relaxed" style={{ color: G.muted }}>
+          Skill XP was already added for this analysis.
+        </p>
+      )}
+
+      {leveledUpRewards.length > 0 && (
+        <div className="mt-3 rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+          <p className="text-[9px] font-black tracking-widest uppercase mb-1" style={{ color: G.green }}>
+            Skill Level Up
+          </p>
+          <p className="text-[11px] leading-relaxed" style={{ color: G.whiteDim }}>
+            {leveledUpRewards.map((reward) => `${reward.skillName} L${reward.newLevel}`).join(", ")}
+          </p>
+        </div>
+      )}
+
+      <div className="mt-3 rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+        <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+          Recommended Focus
+        </p>
+        <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+          {recommendedFocus?.name ?? result.mainFocus}
+        </p>
+      </div>
+
+      <div className="mt-2 rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+        <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.green }}>
+          Next Training Step
+        </p>
+        <p className="text-[12px] font-black mt-1" style={{ color: G.white }}>
+          {trainingStep.title}
+        </p>
+        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
+          {trainingStep.description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SkillRewardItem({ reward }: { reward: SkillRewardSummary }) {
+  return (
+    <div className="rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+      <p className="text-[10px] font-bold truncate" style={{ color: G.white }}>
+        {reward.skillName}
+      </p>
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <p className="text-[11px] font-black" style={{ color: G.green, fontFamily: "'JetBrains Mono', monospace" }}>
+          +{reward.xpEarned} XP
+        </p>
+        <p className="text-[9px] font-bold" style={{ color: reward.leveledUp ? G.green : G.muted }}>
+          L{reward.newLevel}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function getSkillProgressCopy(status: DrillValidityStatus) {
+  if (status === "Invalid") {
+    return "Skill progress focused on Shot Action Clarity because CoachAI could not verify a clear shooting action.";
+  }
+
+  if (status === "Unclear") {
+    return "Skill progress focused on Recording Clarity because the shot action was not fully clear.";
+  }
+
+  return "Technical skill XP from this single-shot analysis.";
 }
 
 function LimitedPreviewBanner({ status }: { status: "Unclear" | "Invalid" }) {

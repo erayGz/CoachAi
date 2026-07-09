@@ -7,8 +7,9 @@ import { badges, getLevelProgress } from "../utils/gamification";
 import { getGamificationState } from "../utils/gamificationStorage";
 import { getAnalysisHistory } from "../utils/historyStorage";
 import { getHistorySummary } from "../utils/historyStats";
+import { getSkillTreeState } from "../utils/skillTreeStorage";
 import { G } from "../utils/theme";
-import type { ScreenProps } from "../types";
+import type { ScreenProps, SkillNode } from "../types";
 
 const profileActionFeedback = "Coming soon in a future version.";
 
@@ -17,6 +18,7 @@ export function ProfileScreen({ go }: ScreenProps) {
   const gamificationState = getGamificationState();
   const levelProgress = getLevelProgress(gamificationState.totalXp);
   const unlockedBadges = badges.filter((badge) => gamificationState.unlockedBadges.includes(badge.id));
+  const skillTreeState = getSkillTreeState();
   const [actionFeedback, setActionFeedback] = useState("");
 
   function showActionFeedback() {
@@ -131,6 +133,8 @@ export function ProfileScreen({ go }: ScreenProps) {
             </div>
           </div>
 
+          <SkillDevelopmentSection skills={skillTreeState.skills} />
+
           <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
             <div className="px-4 py-3" style={{ borderBottom: `1px solid ${G.border}` }}>
               <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
@@ -228,6 +232,61 @@ function ProgressStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SkillDevelopmentSection({ skills }: { skills: SkillNode[] }) {
+  return (
+    <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="px-4 py-3" style={{ borderBottom: `1px solid ${G.border}` }}>
+        <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+          Skill Development
+        </p>
+        <p className="text-[10px] mt-0.5" style={{ color: G.whiteDim }}>
+          Shooting path progress by skill.
+        </p>
+      </div>
+      <div className="px-4 py-3.5 space-y-2.5">
+        {skills.map((skill) => <ProfileSkillRow key={skill.id} skill={skill} />)}
+      </div>
+    </div>
+  );
+}
+
+function ProfileSkillRow({ skill }: { skill: SkillNode }) {
+  return (
+    <div className="rounded-xl px-3 py-2.5" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold truncate" style={{ color: G.white }}>
+            {skill.name}
+          </p>
+          <p className="text-[9px] mt-0.5 capitalize" style={{ color: getSkillStatusColor(skill.status) }}>
+            {skill.status}
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-[14px] font-black leading-none" style={{ color: G.green, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            L{skill.level}
+          </p>
+          <p className="text-[9px] mt-1" style={{ color: G.muted }}>
+            {skill.xp} XP
+          </p>
+        </div>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden mt-2" style={{ background: `${G.bg}AA` }}>
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${skill.progressPercent}%`,
+            background: `linear-gradient(90deg, ${G.green} 0%, ${G.blue} 100%)`,
+          }}
+        />
+      </div>
+      <p className="text-[9px] text-right mt-1" style={{ color: G.muted }}>
+        {skill.progressPercent}% to next level
+      </p>
+    </div>
+  );
+}
+
 function ProfileActionButton({
   title,
   detail,
@@ -292,4 +351,11 @@ function getProfileStats() {
       color: G.purple,
     },
   ];
+}
+
+function getSkillStatusColor(status: SkillNode["status"]) {
+  if (status === "strong") return G.blue;
+  if (status === "developing") return G.green;
+  if (status === "active") return G.amber;
+  return G.muted;
 }

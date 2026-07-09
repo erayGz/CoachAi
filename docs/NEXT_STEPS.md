@@ -35,6 +35,8 @@ Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-b
 - Progress summaries in Dashboard, Results, and Profile
 - Dataset intake metadata validation
 - Local incoming/provider sample workflow
+- Shooting Skill Tree
+- Local training path and next-step recommendations
 - Authentication
 - Cloud video storage
 - Database
@@ -54,6 +56,8 @@ Phase 4-B adds the dataset intake and validation workflow. Next steps after this
 - Label usable clips into `bad`, `medium`, or `good`
 - Move unusable clips into `invalid`
 - Later: add a feedback system, personalized training recommendations, and export to model-ready format
+
+Phase 4-C adds the local-only Shooting Skill Tree and Training Path foundation. It tracks skill XP for six technical shooting skills plus `Recording Clarity` and `Shot Action Clarity`, then shows skill progress in Results, Dashboard, and Profile. Future work should connect skill XP to real pose, ball, contact, and shooting metrics so recommendations become more personalized and accurate.
 
 ## Phase 5: Expansion
 

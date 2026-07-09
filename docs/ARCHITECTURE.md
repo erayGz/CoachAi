@@ -29,7 +29,7 @@ Mocked app metadata, profile data, analysis defaults, training drills, and other
 
 ### `src/types`
 
-Shared TypeScript types for screens, navigation, video validation, analysis sessions, analysis results, history items, gamification state, rewards, and UI data.
+Shared TypeScript types for screens, navigation, video validation, analysis sessions, analysis results, history items, gamification state, skill tree state, rewards, and UI data.
 
 ### `src/utils`
 
@@ -42,6 +42,8 @@ Utility logic for:
 - History stats helpers
 - Gamification calculations
 - Gamification localStorage helpers
+- Skill tree calculations
+- Skill tree localStorage helpers
 - Session utilities
 - Navigation helpers
 - Theme constants
@@ -65,8 +67,9 @@ When processing completes, the app:
 - Marks the session as completed
 - Saves the result to localStorage history once
 - Applies local progression rewards once and stores the reward summary on the completed session
+- Applies local skill tree rewards once and stores the skill reward summary on the completed session
 
-This prevents duplicate history saves and duplicate XP rewards if Processing remounts or the user navigates around the app.
+This prevents duplicate history saves, duplicate XP rewards, and duplicate skill XP if Processing remounts or the user navigates around the app.
 
 ## Video Validation
 
@@ -310,6 +313,37 @@ XP is currently calculated from demo-friendly signals:
 - Bonus XP when the shot action is likely detected
 
 Badges currently cover first analysis, three analyses completed, focus-area improvements, clean video quality, and consistent training. Dashboard shows the player progress, daily quest, weekly quest, streak, and XP bar. Results shows the reward earned for the completed analysis. Profile shows level progress and unlocked badges.
+
+## localStorage Skill Tree
+
+Phase 4-C adds a local-only Shooting Skill Tree and Training Path foundation. It does not change backend APIs, scoring, history, or gamification rewards.
+
+Skill tree state is saved under:
+
+```text
+coachai.skillTree
+```
+
+The skill tree tracks eight nodes:
+
+- `Approach & Balance`
+- `Plant Foot Position`
+- `Body Posture`
+- `Contact Mechanics`
+- `Follow-through`
+- `Accuracy`
+- `Recording Clarity`
+- `Shot Action Clarity`
+
+The first six nodes are technical shooting skills. `Recording Clarity` is used for unclear videos where the shot action is not fully visible. `Shot Action Clarity` is used for invalid videos where CoachAI cannot verify a clear shooting action.
+
+Skill XP is applied in the same completed-analysis flow as history and gamification rewards. The skill tree stores `rewardedSkillAnalysisIds`, so revisiting Results or remounting Processing does not duplicate skill XP.
+
+For valid analyses, technical skill XP is based on technical breakdown participation, score thresholds, main focus, and analysis confidence. For unclear analyses, XP focuses on `Recording Clarity` with only tiny preview XP for visible technical categories. For invalid analyses, XP focuses on `Shot Action Clarity` and no technical skill XP is granted.
+
+Dashboard shows a compact Shooting Skill Tree with the six technical skills and the current focus. Results shows the per-analysis skill XP, level-ups, recommended focus, and next training step. Profile shows all eight skills with level, XP, progress percent, and status.
+
+Future real pose, ball, contact, and shooting metric analysis should make these skill updates more accurate.
 
 ## Guarded Screens
 

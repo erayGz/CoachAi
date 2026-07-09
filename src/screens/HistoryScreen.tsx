@@ -5,6 +5,7 @@ import { BottomNav, StatCard } from "../components";
 import { clearGamificationState } from "../utils/gamificationStorage";
 import { clearAnalysisHistory, formatHistoryDateTime, getAnalysisHistory } from "../utils/historyStorage";
 import { filterHistoryItems, getHistorySummary, historyFilters, type HistoryFilter } from "../utils/historyStats";
+import { clearSkillTreeState } from "../utils/skillTreeStorage";
 import { G } from "../utils/theme";
 import type { AnalysisHistoryItem, ScreenProps } from "../types";
 
@@ -26,6 +27,7 @@ export function HistoryScreen({ go }: ScreenProps) {
   function handleClearHistory() {
     clearAnalysisHistory();
     clearGamificationState();
+    clearSkillTreeState();
     setHistoryItems([]);
   }
 
