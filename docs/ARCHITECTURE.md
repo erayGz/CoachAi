@@ -44,6 +44,8 @@ Utility logic for:
 - Gamification localStorage helpers
 - Skill tree calculations
 - Skill tree localStorage helpers
+- Weekly training plan generation
+- Weekly training plan localStorage helpers
 - Session utilities
 - Navigation helpers
 - Theme constants
@@ -344,6 +346,31 @@ For valid analyses, technical skill XP is based on technical breakdown participa
 Dashboard shows a compact Shooting Skill Tree with the six technical skills and the current focus. Results shows the per-analysis skill XP, level-ups, recommended focus, and next training step. Profile shows all eight skills with level, XP, progress percent, and status.
 
 Future real pose, ball, contact, and shooting metric analysis should make these skill updates more accurate.
+
+## localStorage Weekly Training Plan
+
+Phase 4-D adds an adaptive weekly training plan foundation. It is frontend/localStorage only and does not change backend APIs, scoring, history, gamification, or skill tree reward rules.
+
+Weekly plans are saved under:
+
+```text
+coachai.weeklyTrainingPlan
+```
+
+The plan is generated from:
+
+- Current skill tree state
+- Current gamification state
+- Latest analysis result when available
+- Drill validity status
+
+If the latest result is `Unclear`, the plan focuses on `Recording Clarity`. If the latest result is `Invalid`, it focuses on `Shot Action Clarity`. For valid results, it follows the recommended technical focus from the skill tree.
+
+Each weekly plan has four tasks with `todo` or `done` state. Marking tasks done does not grant XP, which avoids reward farming and keeps the feature focused on guidance. A new plan is created when a new week starts or when a new analysis changes the focus significantly.
+
+Dashboard shows `This Week's Coach Plan` with task progress and task completion controls. Results connects the skill progress card to the current weekly plan. Profile shows a compact weekly focus and completed-task summary.
+
+Future work can generate plans from real pose, ball, contact, and shooting metrics, then expose coach-review controls in a future coach dashboard.
 
 ## Guarded Screens
 

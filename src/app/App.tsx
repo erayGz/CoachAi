@@ -10,8 +10,9 @@ import { VideoUploadScreen } from "../screens/VideoUploadScreen";
 import { initialScreen, screenRegistry } from "../utils/navigation";
 import { createAnalysisSessionId } from "../utils/session";
 import { saveAnalysisToHistory } from "../utils/historyStorage";
-import { applyAnalysisRewards } from "../utils/gamificationStorage";
+import { applyAnalysisRewards, getGamificationState } from "../utils/gamificationStorage";
 import { applyAnalysisSkillRewards } from "../utils/skillTreeStorage";
+import { refreshWeeklyTrainingPlanIfNeeded } from "../utils/trainingPlanStorage";
 import { G } from "../utils/theme";
 import type { AnalysisSession, AppScreenProps, Screen, ShootingAnalysisResult, VideoValidationResult } from "../types";
 
@@ -82,11 +83,14 @@ export default function App() {
       };
 
       saveAnalysisToHistory(completedSession);
+      const rewardSummary = applyAnalysisRewards(result);
+      const skillRewardSummary = applyAnalysisSkillRewards(result);
+      refreshWeeklyTrainingPlanIfNeeded(skillRewardSummary.skillTreeState, getGamificationState(), result);
 
       return {
         ...completedSession,
-        rewardSummary: applyAnalysisRewards(result),
-        skillRewardSummary: applyAnalysisSkillRewards(result),
+        rewardSummary,
+        skillRewardSummary,
       };
     });
   }

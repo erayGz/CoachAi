@@ -2,6 +2,7 @@ import { Activity, Check, Info, Target, Upload, Zap } from "lucide-react";
 import { FieldGrid, ScoreRing, SubScoreCard } from "../components";
 import { formatShotAction, shotActionLooksLikely } from "../utils/analysisResult";
 import { getNextTrainingStep, getSkillNodeById } from "../utils/skillTree";
+import { getWeeklyTrainingPlan } from "../utils/trainingPlanStorage";
 import { G } from "../utils/theme";
 import type {
   AnalysisLevel,
@@ -21,6 +22,8 @@ import type {
   VideoQuality,
   VideoQualityCheckStatus,
   VideoQualityReport,
+  WeeklyTrainingPlan,
+  WeeklyTrainingTask,
 } from "../types";
 
 export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
@@ -34,6 +37,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   const drillValidityStatus = result.drillValidityReport?.status;
   const isLimitedPreview = drillValidityStatus === "Unclear" || drillValidityStatus === "Invalid";
   const scoreLabel = isLimitedPreview ? "Preview Score" : "Overall Score";
+  const weeklyPlan = getWeeklyTrainingPlan();
 
   return (
     <div className="flex flex-col h-full">
@@ -85,7 +89,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
 
         {currentAnalysisSession.rewardSummary && <ProgressEarnedCard rewardSummary={currentAnalysisSession.rewardSummary} result={result} />}
         {currentAnalysisSession.skillRewardSummary && (
-          <SkillProgressCard skillRewardSummary={currentAnalysisSession.skillRewardSummary} result={result} />
+          <SkillProgressCard skillRewardSummary={currentAnalysisSession.skillRewardSummary} result={result} weeklyPlan={weeklyPlan} />
         )}
 
         {result.videoMetadata && <VideoInfoCard metadata={result.videoMetadata} />}
@@ -296,12 +300,15 @@ function getProgressEarnedCopy(status: DrillValidityStatus) {
 function SkillProgressCard({
   skillRewardSummary,
   result,
+  weeklyPlan,
 }: {
   skillRewardSummary: SkillTreeRewardResult;
   result: ShootingAnalysisResult;
+  weeklyPlan: WeeklyTrainingPlan;
 }) {
   const recommendedFocus = getSkillNodeById(skillRewardSummary.skillTreeState, skillRewardSummary.recommendedFocusSkillId);
-  const trainingStep = getNextTrainingStep(result, skillRewardSummary.skillTreeState);
+  const fallbackTrainingStep = getNextTrainingStep(result, skillRewardSummary.skillTreeState);
+  const nextPlanTask = getNextPlanTask(weeklyPlan);
   const validityStatus = result.drillValidityReport?.status ?? "Unclear";
   const totalSkillXp = skillRewardSummary.rewards.reduce((total, reward) => total + reward.xpEarned, 0);
   const leveledUpRewards = skillRewardSummary.rewards.filter((reward) => reward.leveledUp);
@@ -359,17 +366,24 @@ function SkillProgressCard({
 
       <div className="mt-2 rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
         <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.green }}>
-          Next Training Step
+          This Week's Plan
         </p>
         <p className="text-[12px] font-black mt-1" style={{ color: G.white }}>
-          {trainingStep.title}
+          {weeklyPlan.focusSkillName}
         </p>
         <p className="text-[11px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
-          {trainingStep.description}
+          Next task: {nextPlanTask?.title ?? fallbackTrainingStep.title}
+        </p>
+        <p className="text-[10px] mt-1 leading-relaxed" style={{ color: `${G.green}AA` }}>
+          {nextPlanTask?.description ?? fallbackTrainingStep.description}
         </p>
       </div>
     </div>
   );
+}
+
+function getNextPlanTask(plan: WeeklyTrainingPlan): WeeklyTrainingTask | null {
+  return plan.tasks.find((task) => task.status === "todo") ?? plan.tasks[0] ?? null;
 }
 
 function SkillRewardItem({ reward }: { reward: SkillRewardSummary }) {

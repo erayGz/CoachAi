@@ -8,8 +8,9 @@ import { getGamificationState } from "../utils/gamificationStorage";
 import { getAnalysisHistory } from "../utils/historyStorage";
 import { getHistorySummary } from "../utils/historyStats";
 import { getSkillTreeState } from "../utils/skillTreeStorage";
+import { getWeeklyTrainingPlan } from "../utils/trainingPlanStorage";
 import { G } from "../utils/theme";
-import type { ScreenProps, SkillNode } from "../types";
+import type { ScreenProps, SkillNode, WeeklyTrainingPlan } from "../types";
 
 const profileActionFeedback = "Coming soon in a future version.";
 
@@ -19,6 +20,7 @@ export function ProfileScreen({ go }: ScreenProps) {
   const levelProgress = getLevelProgress(gamificationState.totalXp);
   const unlockedBadges = badges.filter((badge) => gamificationState.unlockedBadges.includes(badge.id));
   const skillTreeState = getSkillTreeState();
+  const weeklyPlan = getWeeklyTrainingPlan();
   const [actionFeedback, setActionFeedback] = useState("");
 
   function showActionFeedback() {
@@ -134,6 +136,7 @@ export function ProfileScreen({ go }: ScreenProps) {
           </div>
 
           <SkillDevelopmentSection skills={skillTreeState.skills} />
+          <WeeklyPlanSummary plan={weeklyPlan} />
 
           <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
             <div className="px-4 py-3" style={{ borderBottom: `1px solid ${G.border}` }}>
@@ -283,6 +286,36 @@ function ProfileSkillRow({ skill }: { skill: SkillNode }) {
       <p className="text-[9px] text-right mt-1" style={{ color: G.muted }}>
         {skill.progressPercent}% to next level
       </p>
+    </div>
+  );
+}
+
+function WeeklyPlanSummary({ plan }: { plan: WeeklyTrainingPlan }) {
+  const completedTasks = plan.tasks.filter((task) => task.status === "done").length;
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            Weekly Focus
+          </p>
+          <p className="text-[15px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            {plan.focusSkillName}
+          </p>
+          <p className="text-[10px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
+            {plan.focusReason}
+          </p>
+        </div>
+        <div className="rounded-xl px-3 py-2 text-right flex-shrink-0" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+          <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: G.muted }}>
+            Done
+          </p>
+          <p className="text-[15px] font-black mt-1" style={{ color: G.green, fontFamily: "'JetBrains Mono', monospace" }}>
+            {completedTasks}/{plan.tasks.length}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

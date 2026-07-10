@@ -1,4 +1,5 @@
-import { ChevronRight, Lock, Target } from "lucide-react";
+import { Check, ChevronRight, Lock, Target } from "lucide-react";
+import { useState } from "react";
 import { BottomNav, FieldGrid, GlowOrb, StatCard } from "../components";
 import { activeModuleLabel } from "../data/appMeta";
 import { getLevelProgress, isSameDay } from "../utils/gamification";
@@ -6,8 +7,9 @@ import { getGamificationState } from "../utils/gamificationStorage";
 import { formatHistoryDateTime, getAnalysisHistory } from "../utils/historyStorage";
 import { getSkillNodeById, getTechnicalSkillNodes } from "../utils/skillTree";
 import { getSkillTreeState } from "../utils/skillTreeStorage";
+import { markTrainingTaskDone, refreshWeeklyTrainingPlanIfNeeded } from "../utils/trainingPlanStorage";
 import { G } from "../utils/theme";
-import type { AnalysisHistoryItem, ScreenProps, SkillNode, StatItem } from "../types";
+import type { AnalysisHistoryItem, ScreenProps, SkillNode, StatItem, WeeklyTrainingPlan, WeeklyTrainingTask } from "../types";
 
 export function DashboardScreen({ go }: ScreenProps) {
   const historyItems = getAnalysisHistory();
@@ -21,6 +23,13 @@ export function DashboardScreen({ go }: ScreenProps) {
   const skillTreeState = getSkillTreeState();
   const technicalSkills = getTechnicalSkillNodes(skillTreeState);
   const focusSkill = getSkillNodeById(skillTreeState, skillTreeState.recommendedFocusSkillId);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyTrainingPlan>(() => (
+    refreshWeeklyTrainingPlanIfNeeded(skillTreeState, gamificationState)
+  ));
+
+  function handleMarkTaskDone(taskId: string) {
+    setWeeklyPlan(markTrainingTaskDone(taskId));
+  }
 
   return (
     <div className="coachai-has-bottom-nav flex flex-col h-full">
@@ -61,6 +70,7 @@ export function DashboardScreen({ go }: ScreenProps) {
           />
 
           <ShootingSkillTreeCard skills={technicalSkills} focusSkill={focusSkill} />
+          <WeeklyCoachPlanCard plan={weeklyPlan} onMarkTaskDone={handleMarkTaskDone} />
 
           <button
             onClick={() => go("shooting-guide")}
@@ -230,6 +240,91 @@ function SkillTreeRow({ skill }: { skill: SkillNode }) {
             background: `linear-gradient(90deg, ${G.green} 0%, ${G.blue} 100%)`,
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+function WeeklyCoachPlanCard({
+  plan,
+  onMarkTaskDone,
+}: {
+  plan: WeeklyTrainingPlan;
+  onMarkTaskDone: (taskId: string) => void;
+}) {
+  const completedTasks = plan.tasks.filter((task) => task.status === "done").length;
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div>
+          <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+            This Week's Coach Plan
+          </p>
+          <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+            {plan.focusSkillName}
+          </p>
+          <p className="text-[10px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
+            {plan.focusReason}
+          </p>
+        </div>
+        <div className="rounded-xl px-3 py-2 text-right flex-shrink-0" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+          <p className="text-[8px] font-black uppercase tracking-widest" style={{ color: G.muted }}>
+            Tasks
+          </p>
+          <p className="text-[15px] font-black mt-1" style={{ color: G.green, fontFamily: "'JetBrains Mono', monospace" }}>
+            {completedTasks}/{plan.tasks.length}
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        {plan.tasks.map((task) => (
+          <WeeklyPlanTaskRow key={task.id} task={task} onMarkDone={onMarkTaskDone} />
+        ))}
+      </div>
+
+      <p className="text-[10px] mt-3 leading-relaxed" style={{ color: G.muted }}>
+        Rest days count too.
+      </p>
+    </div>
+  );
+}
+
+function WeeklyPlanTaskRow({
+  task,
+  onMarkDone,
+}: {
+  task: WeeklyTrainingTask;
+  onMarkDone: (taskId: string) => void;
+}) {
+  const isDone = task.status === "done";
+
+  return (
+    <div className="rounded-xl px-3 py-2.5" style={{ background: G.card2, border: `1px solid ${isDone ? G.greenBorder : G.border}` }}>
+      <div className="flex items-start gap-3">
+        <button
+          type="button"
+          onClick={() => onMarkDone(task.id)}
+          disabled={isDone}
+          aria-label={isDone ? `${task.title} completed` : `Mark ${task.title} done`}
+          className="mt-0.5 h-5 w-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black transition-all active:scale-[0.95]"
+          style={{
+            background: isDone ? G.green : G.greenDim,
+            color: isDone ? G.bg : G.green,
+            border: `1px solid ${G.greenBorder}`,
+          }}
+        >
+          {isDone ? <Check size={11} strokeWidth={3} /> : null}
+        </button>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold leading-snug" style={{ color: isDone ? G.green : G.white }}>
+            {task.title}
+          </p>
+          <p className="text-[10px] mt-1 leading-snug" style={{ color: G.muted }}>
+            {task.description}
+          </p>
+        </div>
       </div>
     </div>
   );

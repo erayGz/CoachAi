@@ -37,6 +37,7 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - History filters
 - Local XP, levels, quests, and badges
 - Shooting Skill Tree and training path
+- Adaptive weekly training plan
 
 ## Tech Stack
 
@@ -126,6 +127,8 @@ Progression is saved on this device in localStorage under `coachai.gamification`
 
 The Shooting Skill Tree is saved under `coachai.skillTree`. It tracks six technical shooting skills plus `Recording Clarity` for unclear clips and `Shot Action Clarity` for invalid clips. Skill XP is still based on mocked analysis results and heuristic validity signals. Future real pose, ball, and contact metrics should update these skills more accurately.
 
+The adaptive weekly training plan is saved under `coachai.weeklyTrainingPlan`. It uses the skill tree, latest result, and drill validity to suggest a weekly focus and four healthy training tasks. Task completion does not grant XP in this phase.
+
 ## Manual Demo Flow
 
 Splash → Dashboard → Shooting Guide → Video Upload → Processing → Results → History → Profile
@@ -144,6 +147,7 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Local samples are for calibration only and are not committed
 - XP, quests, streaks, and badges are local-only and can be cleared from browser storage
 - Skill tree progress and training path recommendations are local-only for now
+- Weekly training plans are local-only and are not synced to an account yet
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 

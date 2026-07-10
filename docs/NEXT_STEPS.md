@@ -37,6 +37,8 @@ Phase 3-A now covers basic OpenCV metadata extraction. Phase 3-B adds metadata-b
 - Local incoming/provider sample workflow
 - Shooting Skill Tree
 - Local training path and next-step recommendations
+- Adaptive weekly training plan
+- Task completion tracking without XP farming
 - Authentication
 - Cloud video storage
 - Database
@@ -58,6 +60,8 @@ Phase 4-B adds the dataset intake and validation workflow. Next steps after this
 - Later: add a feedback system, personalized training recommendations, and export to model-ready format
 
 Phase 4-C adds the local-only Shooting Skill Tree and Training Path foundation. It tracks skill XP for six technical shooting skills plus `Recording Clarity` and `Shot Action Clarity`, then shows skill progress in Results, Dashboard, and Profile. Future work should connect skill XP to real pose, ball, contact, and shooting metrics so recommendations become more personalized and accurate.
+
+Phase 4-D adds a local-only adaptive weekly training plan. The plan is generated from the skill tree, latest result, drill validity, and current progression state. It gives the player a weekly focus and four simple tasks without granting XP for task completion. Future work can generate plans from real technical metrics and add coach dashboard controls for review or assignment.
 
 ## Phase 5: Expansion
 

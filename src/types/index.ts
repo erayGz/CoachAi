@@ -263,6 +263,30 @@ export type SkillTreeRewardResult = {
   alreadyRewarded: boolean;
 };
 
+export type WeeklyTrainingTaskStatus = "todo" | "done";
+
+export type WeeklyTrainingTaskCategory = "recording" | "technical" | "analysis" | "recovery";
+
+export type WeeklyTrainingTask = {
+  id: string;
+  title: string;
+  description: string;
+  status: WeeklyTrainingTaskStatus;
+  category: WeeklyTrainingTaskCategory;
+  xpReward?: number;
+};
+
+export type WeeklyTrainingPlan = {
+  id: string;
+  weekStartDate: string;
+  focusSkillId: SkillId;
+  focusSkillName: string;
+  focusReason: string;
+  tasks: WeeklyTrainingTask[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ProfileField = {
   label: string;
   value: string;
