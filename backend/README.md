@@ -1,475 +1,65 @@
 # CoachAI Backend
 
-FastAPI mock backend for the CoachAI Football · Shooting Lab MVP.
-
-This backend is intentionally limited to Phase 3-G:
-
-- No real AI analysis
-- No authentication
-- No database
-- No cloud video storage
-- No permanent video saving
-
-The `/analyze/shooting` endpoint accepts a local video file, extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks Pose Landmarker scaffold, validates duration, evaluates metadata-based video quality, estimates shooting drill validity with lightweight heuristics, derives pose-aware reliability and confidence, and returns a dynamic mocked shooting analysis result that matches the current frontend analysis shape. Scoring is still mocked.
+The Football Shooting Lab estimates a single soccer strike and produces technique feedback from visible player and ball motion. FastAPI accepts the upload, OpenCV decodes the clip, and two pre-trained MediaPipe models run on the local CPU. CoachAI uses a versioned, deterministic scoring rubric for the output. Analysis requires no API key or paid service. The setup script downloads model files once and verifies their SHA-256 checksums.
 
 ## Setup
 
-From the project root:
-
-```bash
-cd backend
-python -m venv .venv
-```
-
-Activate the virtual environment.
-
-Windows PowerShell:
+From the project root on Windows:
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+python -m venv backend\.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+.\backend\.venv\Scripts\python.exe backend\scripts\setup_pose_model.py
+.\backend\.venv\Scripts\python.exe backend\scripts\check_pose_model.py
 ```
 
-macOS/Linux:
+On macOS or Linux, use `python3 -m venv backend/.venv` and run the remaining commands with `backend/.venv/bin/python` and forward-slash paths. From the project root, `npm run dev` runs Vite and FastAPI. Use `npm.cmd run dev` in Windows PowerShell. For the backend alone, activate the virtual environment and run from `backend`:
 
-```bash
-source .venv/bin/activate
+```sh
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-Install dependencies:
+Open the API documentation at [localhost:8000/docs](http://127.0.0.1:8000/docs). `GET /health` reports the backend version.
 
-```bash
-pip install -r requirements.txt
-```
+## Analyze a shot
 
-The backend uses `opencv-python` for basic video metadata extraction and `mediapipe` for the optional Pose Landmarker scaffold. Pose analysis requires a local MediaPipe Tasks model file:
-
-```text
-backend/models/pose_landmarker_lite.task
-```
-
-If the model is missing, MediaPipe cannot initialize, or pose analysis fails, `/analyze/shooting` still returns a mocked analysis with `poseAnalysis: null` and adds a pose-analysis warning.
-
-## Pose Landmarker Model Setup
-
-Pose detection requires a local `.task` model file. The expected path is:
-
-```text
-backend/models/pose_landmarker_lite.task
-```
-
-The model file is ignored by git:
-
-```text
-backend/models/*.task
-```
-
-The folder README remains tracked so the expected location is documented:
-
-```text
-backend/models/README.md
-```
-
-If the model is missing, the backend still works. `/analyze/shooting` returns `poseAnalysis: null` and adds this warning to `videoQualityReport.warnings`:
-
-```text
-Pose analysis could not be completed.
-```
-
-From the `backend` directory, check whether the model is installed:
-
-```bash
-python scripts/check_pose_model.py
-```
-
-Create the model folder and print setup instructions:
-
-```bash
-python scripts/setup_pose_model.py
-```
-
-## Run The Backend
-
-From the `backend` directory:
-
-```bash
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-The API will be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Interactive API docs:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-## Endpoints
-
-### `GET /`
-
-Returns a simple service status message.
-
-```bash
-curl http://127.0.0.1:8000/
-```
-
-Response:
-
-```json
-{
-  "service": "coachai-backend",
-  "message": "CoachAI backend is running",
-  "docs": "/docs"
-}
-```
-
-### `GET /health`
-
-Returns backend health status and version.
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-Response:
-
-```json
-{
-  "status": "ok",
-  "service": "coachai-backend",
-  "version": "0.1.0"
-}
-```
-
-### `POST /analyze/shooting`
-
-Accepts a single-shot shooting video as `multipart/form-data`.
-
-Validation:
-
-- Accepted file type: `video/*`
-- Maximum file size: 100 MB
-- Empty files are rejected
-- Duration must be 3-15 seconds
-
-The backend reads basic uploaded file metadata:
-
-- `filename`
-- `contentType`
-- `fileSizeBytes`
-
-It also extracts video metadata with OpenCV:
-
-- `durationSeconds`
-- `fps`
-- `width`
-- `height`
-- `frameCount`
-- `sampledFrameCount`
-
-It also extracts up to 10 public sampled frame metadata records:
-
-- `frameIndex`
-- `timestampSeconds`
-- `width`
-- `height`
-
-Sampled frames are not saved to disk, returned as base64, or stored permanently. Only metadata is returned for future computer vision debugging.
-
-For pose analysis, the backend may also select up to 20 internal candidate frames. These are not exposed as a separate frame list. The candidate set combines evenly spaced frames with higher-motion frames found through simple grayscale frame differences between probe frames. This gives pose detection more chances to inspect the shooting motion while keeping the public API response lightweight.
-
-If MediaPipe and the local `.task` model are available, the backend runs Pose Landmarker in `VIDEO` mode on the internal pose candidate frame indices and returns lightweight `poseAnalysis` metadata:
-
-- `framesAnalyzed`
-- `framesWithPose`
-- `poseDetectionRate`
-- `averageVisibility`
-- `poseQuality`
-- `frameSummaries`
-
-The pose scaffold does not return full landmark coordinates, skeletons, base64 images, or saved pose images. It is used only to understand detection quality for future shooting analysis. Real shooting technique scoring is still mocked.
-
-The backend evaluates video quality from metadata:
-
-- Resolution
-- FPS
-- Duration
-- Frame count
-- Frame sampling
-
-The response includes a compact `videoQualityReport` with `quality`, `reliability`, `warnings`, and per-check status rows. `videoQuality` and `analysisReliability` are derived from this report instead of being fully random. If the single shot is not detected in the mock result, reliability is capped below `High`.
-
-Pose quality also influences reliability and feedback:
-
-- Poor pose detection sets `analysisReliability` to `Medium`
-- Partial pose detection prevents `analysisReliability` from being `High`
-- Missing pose analysis returns `poseAnalysis: null` and adds a warning
-- Poor or partial pose detection uses more cautious coach feedback instead of overly specific technique claims
-
-The response also includes `analysisConfidence`:
-
-- `High`: good pose quality with high or good reliability
-- `Medium`: partial pose quality, or good pose quality with medium reliability
-- `Low`: poor pose quality or unavailable pose analysis
-
-The response also includes a heuristic `drillValidityReport`. This does not use real ball detection or true shot detection yet. It checks duration, pose presence, full-body visibility, simple action cues from pose frames, and video quality. Its goal is to stop random non-shooting clips from receiving overconfident shooting reports.
-
-Drill validity affects the mocked result:
-
-- `Valid`: `detectedShots` is returned as `Likely`, and normal pose-aware confidence rules apply
-- `Unclear`: `detectedShots` is returned as `Unclear`, `analysisConfidence` and `analysisReliability` are capped at `Medium`, and `overallScore` is capped at 69
-- `Invalid`: `detectedShots` is returned as `Not verified`, `analysisConfidence` is `Low`, `analysisReliability` is `Medium`, and `overallScore` is capped at 55
-
-Invalid and unclear clips still return an analysis response, but they are treated as limited previews. Feedback is softened, the main focus switches to recording/action clarity, and CoachAI does not claim confident technique analysis from a clip that may not show a clear football shot.
-
-The uploaded file is written to a temporary file for OpenCV processing and deleted after extraction. No uploaded video is stored permanently.
-
-Example:
-
-```bash
-curl -X POST http://127.0.0.1:8000/analyze/shooting \
-  -F "file=@sample-shooting-video.mp4"
-```
-
-Windows PowerShell example:
+Record one player taking one shot. Keep the full player in frame and show the ball around the strike. Choose an angle that clearly shows both. The endpoint accepts a 1–15 second video as multipart field `file`, up to 100 MB.
 
 ```powershell
-curl.exe -X POST http://127.0.0.1:8000/analyze/shooting `
-  -F "file=@sample-shooting-video.mp4"
+curl.exe -X POST http://127.0.0.1:8000/analyze/shooting -F "file=@shot.mp4;type=video/mp4"
 ```
 
-Example response shape:
+The backend samples up to 30 frames per second and keeps separate ball candidates. When multiple balls are visible, it analyzes the last contact supported by foot movement and a change in the selected ball's trajectory. When the whole-frame pass is inconclusive, the backend can crop around a foot swing or back-project a short outgoing ball track to find the kicker in a wide view. A local retry can link a previously detected stationary ball to three consecutive or near-consecutive motion observations with a consistent direction, grounded by the visible kicking foot. A moving highlight alone cannot seed a ball track. Limited track estimates omit the follow-through score. The measurements in `shotMeasurements` are expressed in the image plane, and the same clip produces the same technique score on repeated runs.
 
-```json
-{
-  "id": "a25f2f79-5e2a-4e13-b1aa-9ed093c0d6b2",
-  "createdAt": "2026-07-05T12:00:00Z",
-  "moduleName": "Football · Shooting Lab",
-  "drillName": "Shooting Analysis",
-  "overallScore": 76,
-  "level": "Intermediate",
-  "detectedShots": "Likely",
-  "videoQuality": "Good",
-  "analysisReliability": "Good",
-  "analysisConfidence": "High",
-  "mainFocus": "Plant Foot Position",
-  "mainFocusDescription": "Your support foot is slightly too far from the ball in most shots...",
-  "technicalBreakdown": [
-    {
-      "label": "Plant Foot Position",
-      "score": 64,
-      "color": "#FFB020",
-      "delta": "-12",
-      "status": "Needs Work"
-    }
-  ],
-  "aiCoachFeedback": "Your follow-through is strong and your body balance is improving...",
-  "recommendedTraining": [
-    {
-      "name": "Plant foot placement drill",
-      "reps": "4 x 8 shots",
-      "focus": "Position"
-    }
-  ],
-  "uploadedFile": {
-    "filename": "sample-shooting-video.mp4",
-    "contentType": "video/mp4",
-    "fileSizeBytes": 1234567
-  },
-  "videoMetadata": {
-    "durationSeconds": 14.2,
-    "fps": 30.0,
-    "width": 1920,
-    "height": 1080,
-    "frameCount": 426,
-    "sampledFrameCount": 10
-  },
-  "videoQualityReport": {
-    "quality": "Excellent",
-    "reliability": "High",
-    "warnings": [],
-    "checks": [
-      {
-        "label": "Resolution",
-        "status": "pass",
-        "message": "HD resolution or better."
-      }
-    ]
-  },
-  "drillValidityReport": {
-    "status": "Valid",
-    "confidence": "High",
-    "warnings": [],
-    "checks": [
-      {
-        "label": "Action cues",
-        "status": "pass",
-        "message": "Movement cues are usable, but ball contact is not verified yet."
-      }
-    ]
-  },
-  "sampledFrames": [
-    {
-      "frameIndex": 0,
-      "timestampSeconds": 0.0,
-      "width": 1920,
-      "height": 1080
-    }
-  ],
-  "poseAnalysis": {
-    "framesAnalyzed": 20,
-    "framesWithPose": 8,
-    "poseDetectionRate": 0.8,
-    "averageVisibility": 0.72,
-    "poseQuality": "Good",
-    "frameSummaries": [
-      {
-        "frameIndex": 0,
-        "timestampSeconds": 0.0,
-        "poseDetected": true,
-        "landmarkCount": 33,
-        "visibilityAverage": 0.74
-      }
-    ]
-  }
-}
+| Field | Measurement |
+| --- | --- |
+| `contactTimeSeconds` | Estimated time of foot–ball contact near a change in the ball's trajectory |
+| `kickingFoot` | Anatomical left or right foot closest to the ball in the contact window |
+| `plantFootDistanceTorsoLengths` | Projected support-foot distance to the ball, divided by torso length |
+| `torsoTiltDegrees` | Projected shoulder-to-hip tilt from image vertical at estimated contact |
+| `followThroughTorsoLengths` | Projected kicking-ankle travel relative to the hips, along the detected ball direction, in the first 300 ms |
+
+The existing result fields carry the overall score, available subscores and a drill for the lowest-scoring measured category. `scoringVersion` identifies the rubric. The first version averages available subscores and requires at least two. Temporary videos are deleted when processing ends. The response contains a compact sampling and pose summary alongside the technique measurements.
+
+| HTTP status | Meaning |
+| --- | --- |
+| 200 | The clip provided evidence for one strike and enough visible technique to score |
+| 400 / 413 | The upload could not be decoded, fell outside the duration range, or exceeded the file-size limit |
+| 422 | The strike or technique could not be verified from the available footage |
+| 503 | The local models or inference runtime are unavailable |
+
+The existing frontend displays the backend's `detail` on upload failures.
+
+## Verification and current limits
+
+Run the deterministic tests from `backend` with the project Python environment:
+
+```sh
+python -m unittest discover -s tests -v
 ```
 
-## Common Error Responses
+The tests cover contact timing on synthetic observations, missing measurements, multiple strikes and players, single-shot response compatibility, and upload cleanup. Run `python scripts/evaluate_samples.py` from `backend` to validate the local sample index.
 
-Errors use FastAPI's standard shape:
+The rubric uses provisional cutoffs for projected technique, so scores depend on the camera view. A partial 100 means the average of the available subscores rounded to 100. The feedback gives the number of metrics included. See [contact and coaching evaluation](../samples/README.md#shooting-contact-and-coaching-evaluation) for the labeled sets and coach review workflow. Accuracy at a target, true ball speed, exact contact point and reliable distinction between shots and firm passes require additional evidence or labeled data.
 
-```json
-{
-  "detail": "error message"
-}
-```
-
-Examples:
-
-```json
-{
-  "detail": "Only video files are supported."
-}
-```
-
-```json
-{
-  "detail": "Uploaded video is empty."
-}
-```
-
-```json
-{
-  "detail": "Video file is too large. Maximum size is 100 MB."
-}
-```
-
-```json
-{
-  "detail": "Uploaded file could not be read as a valid video."
-}
-```
-
-```json
-{
-  "detail": "Video metadata extraction failed."
-}
-```
-
-```json
-{
-  "detail": "Video is too short. Please upload a 3–15 second shooting video."
-}
-```
-
-```json
-{
-  "detail": "Video is too long. Please upload a 3–15 second shooting video."
-}
-```
-
-The frontend reads `detail` when available and shows it in the Processing error state.
-
-## Manual Verification Commands
-
-Install dependencies:
-
-```bash
-pip install -r backend/requirements.txt
-```
-
-Run backend from project root:
-
-```bash
-cd backend
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Test root:
-
-```bash
-curl http://127.0.0.1:8000/
-```
-
-Test health:
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-Test analysis with a sample video:
-
-```bash
-curl -X POST http://127.0.0.1:8000/analyze/shooting \
-  -F "file=@sample-shooting-video.mp4"
-```
-
-Expected: the response includes `analysisConfidence`, `drillValidityReport`, `videoMetadata`, `videoQualityReport`, and `sampledFrames`. `videoMetadata.sampledFrameCount` should equal `sampledFrames.length`. If MediaPipe runs successfully, the response also includes `poseAnalysis`; if pose analysis fails, the response still succeeds with `poseAnalysis: null`, low or medium confidence, and warnings in `videoQualityReport.warnings`.
-
-Test non-video validation:
-
-```bash
-curl -X POST http://127.0.0.1:8000/analyze/shooting \
-  -F "file=@README.md;type=text/plain"
-```
-
-## Local Sample Evaluation
-
-The project includes a local-only samples dataset structure:
-
-```text
-samples/
-  metadata.csv
-  invalid/
-  bad/
-  medium/
-  good/
-```
-
-Video files under `samples/` are ignored by Git. `samples/metadata.csv` stores manual expected outcomes for drill validity and confidence.
-
-Run the backend first, then evaluate listed samples from the project root:
-
-```bash
-python backend/scripts/evaluate_samples.py
-```
-
-Optional backend URL:
-
-```bash
-python backend/scripts/evaluate_samples.py --backend-url http://127.0.0.1:8000
-```
-
-The runner posts each listed video to `/analyze/shooting` and prints expected vs actual validity, confidence, score, pose quality, warning count, and pass/fail status. This helps calibrate drill validity and future scoring without committing private or large videos.
-
-## CORS
-
-CORS is enabled for local frontend development:
-
-- `http://127.0.0.1:5173`
-- `http://localhost:5173`
+Model references are [MediaPipe Pose Landmarker](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker?tab=Python) and [MediaPipe Object Detector](https://developers.google.com/edge/mediapipe/solutions/vision/object_detector?tab=Python).

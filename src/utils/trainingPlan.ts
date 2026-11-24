@@ -141,7 +141,7 @@ function getFocusReason(
 function createTasksForFocus(focusSkillId: SkillId, weekStartDate: string): WeeklyTrainingTask[] {
   if (focusSkillId === "recording-clarity") {
     return createTasks(weekStartDate, focusSkillId, [
-      ["Record one clear single-shot video from a stable side or 45-degree angle.", "One clear shot is better than rushed uploads.", "recording"],
+      ["Record one shot with your full body and the ball visible.", "Keep both feet in frame through the kick.", "recording"],
       ["Keep full body, ball, and kicking leg visible.", "Check the frame before the shot starts.", "recording"],
       ["Upload one improved shooting clip this week.", "Use the result to guide your next focus.", "analysis"],
       ["Rest or light practice day.", "Rest days count too.", "recovery"],
@@ -176,7 +176,7 @@ function createTasksForFocus(focusSkillId: SkillId, weekStartDate: string): Week
       return createTasks(weekStartDate, focusSkillId, [
         ["Keep your chest over the ball through contact.", "Avoid leaning back before the strike.", "technical"],
         ["Take 5 controlled shots with balanced posture.", "Pause between attempts so each shot has intent.", "technical"],
-        ["Record one clean side or diagonal clip.", "Make sure the full body is visible.", "recording"],
+        ["Record one shot from a clear angle.", "Keep your full body and the ball visible.", "recording"],
         ["Review your weakest technical category.", "Use the next report to guide practice.", "analysis"],
       ]);
     case "contact-mechanics":

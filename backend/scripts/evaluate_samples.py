@@ -179,9 +179,9 @@ def validate_duration(row: dict[str, str], row_number: int, folder: str, summary
         add_note(summary, "duration", row_number, "duration_seconds must be greater than 0.")
         return
 
-    if is_usable_sample and not 3 <= duration <= 15:
+    if is_usable_sample and not 1 <= duration <= 15:
         summary.duration_warnings += 1
-        add_note(summary, "duration", row_number, "Usable samples should be 3-15 seconds.")
+        add_note(summary, "duration", row_number, "Usable samples should be 1–15 seconds.")
 
 
 def validate_permission(row: dict[str, str], row_number: int, folder: str, summary: DatasetSummary) -> None:

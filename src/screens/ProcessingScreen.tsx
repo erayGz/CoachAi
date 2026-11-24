@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Upload } from "lucide-react";
 import { FieldGrid, GlowOrb } from "../components";
 import { analyzeShootingVideo } from "../utils/api";
+import { SHOOTING_VIDEO_DURATION_LABEL } from "../utils/video";
 import { G } from "../utils/theme";
 import type { AppScreenProps } from "../types";
 
@@ -66,7 +67,7 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
 
         window.clearInterval(timer);
         const detail = error instanceof Error ? error.message : "";
-        setAnalysisError(formatAnalysisError(detail));
+        setAnalysisError(detail || backendErrorMessage);
       }
     }
 
@@ -85,7 +86,7 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
     return (
       <ProcessingGate
         title="No video selected"
-        detail="Upload a valid 3-15 second shooting video before running analysis."
+        detail={`Choose a shooting clip that is ${SHOOTING_VIDEO_DURATION_LABEL} long.`}
         buttonLabel="Go to Upload"
         onAction={() => go("video-upload")}
       />
@@ -149,7 +150,7 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
         <h2 className="text-[28px] font-black uppercase" style={{ fontFamily: "'Barlow Condensed', sans-serif", color: G.white }}>
           Processing Video
         </h2>
-        <p className="text-[11px] mt-1" style={{ color: G.muted }}>Usually 2-3 seconds</p>
+        <p className="text-[11px] mt-1" style={{ color: G.muted }}>Analyzing the player and ball</p>
       </div>
 
       <div className="w-full rounded-2xl p-5 space-y-3" style={{ background: G.card, border: `1px solid ${G.border}` }}>
@@ -197,14 +198,6 @@ export function ProcessingScreen({ go, selectedVideo, currentAnalysisSession, on
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
-}
-
-function formatAnalysisError(detail: string) {
-  if (!detail) {
-    return backendErrorMessage;
-  }
-
-  return `Analysis could not be completed. ${detail}`;
 }
 
 function ProcessingGate({

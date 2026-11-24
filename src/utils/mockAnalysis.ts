@@ -99,8 +99,8 @@ const trainingByFocus: Record<ShootingAnalysisCategory, TrainingDrill[]> = {
 };
 
 const limitedPreviewTraining: TrainingDrill[] = [
-  { name: "Record one complete shot", reps: "1 clear 3-15 sec clip", focus: "Clarity" },
-  { name: "Set a stable side angle", reps: "Side or 45-degree view", focus: "Camera" },
+  { name: "Record one complete shot", reps: "1 clear 1–15 sec clip", focus: "Clarity" },
+  { name: "Keep the player and ball in frame", reps: "Full body and ball visible", focus: "Camera" },
   { name: "Keep ball and kicking leg visible", reps: "Before and through contact", focus: "Visibility" },
   { name: "Review framing before upload", reps: "Full body in frame", focus: "Setup" },
 ];
@@ -251,7 +251,7 @@ export function generateMockShootingAnalysisResult(): ShootingAnalysisResult {
       shotAction === "Not verified"
         ? "CoachAI could not verify that this video contains a clear football shooting action. This result is a limited preview, not a technique score. Upload one complete shot with the full body, ball, and kicking leg visible."
         : shotAction === "Unclear"
-          ? "CoachAI found some useful movement cues, but the shooting action was not clear enough for confident technical feedback. This score is a limited preview. For a better report, record one complete shot from a stable side or 45-degree angle."
+          ? "CoachAI found some useful movement cues, but the shooting action was not clear enough for confident technical feedback. This score is a limited preview. Record one shot with your full body and the ball visible."
           : feedbackByFocus[technicalMainFocus],
     recommendedTraining: mainFocus === "Shot Action Clarity" || mainFocus === "Recording Clarity"
       ? limitedPreviewTraining

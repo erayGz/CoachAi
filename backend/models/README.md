@@ -1,11 +1,5 @@
-# Backend Models
+# Local model weights
 
-This folder is for local machine learning model files used by the CoachAI backend.
+From `backend`, run `python scripts/setup_pose_model.py` to install the Pose Landmarker Lite and EfficientDet-Lite0 files into this folder. Run `python scripts/check_pose_model.py` to verify them. The setup script pins the public Google model URLs and verifies the downloads.
 
-Pose analysis uses MediaPipe Tasks Pose Landmarker and expects this local model file:
-
-```text
-backend/models/pose_landmarker_lite.task
-```
-
-Large `.task` model files should stay local and should not be committed to the repository. The backend will still run without the model file, but `poseAnalysis` will be returned as `null` and the response will include a pose analysis warning.
+The runtime uses `pose_landmarker_lite.task` for body landmarks and `efficientdet_lite0.tflite` for the `sports ball` category. Both files are ignored by Git.

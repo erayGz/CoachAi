@@ -226,7 +226,7 @@ export function getNextTrainingStep(result?: ShootingAnalysisResult | null, skil
   if (validity === "Unclear") {
     return {
       title: "Improve recording clarity",
-      description: "Use a stable side or 45-degree camera angle so CoachAI can verify the full shooting action.",
+      description: "Keep your full body and the ball visible around the strike.",
     };
   }
 

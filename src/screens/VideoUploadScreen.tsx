@@ -1,16 +1,14 @@
 import { useRef, useState, type ChangeEvent, type MouseEvent } from "react";
 import { AlertTriangle, Camera, Check, RefreshCw, Trash2, Upload } from "lucide-react";
 import { FieldGrid, Header } from "../components";
-import { formatVideoDuration, formatVideoSize, validateShootingVideo } from "../utils/video";
+import { formatVideoDuration, formatVideoSize, SHOOTING_VIDEO_DURATION_LABEL, validateShootingVideo } from "../utils/video";
 import { G } from "../utils/theme";
 import type { AppScreenProps } from "../types";
 
 const checklist = [
-  "Full body visible throughout",
-  "Ball and goal in frame",
-  "Stationary ball before the shot",
-  "Fixed camera, side or 45° angle",
-  "One complete shot recorded",
+  "One player, one shot",
+  "Full body, including both feet, in frame",
+  "Ball visible around the strike",
 ];
 
 export function VideoUploadScreen({
@@ -132,7 +130,7 @@ export function VideoUploadScreen({
                   <Upload size={24} color={G.muted} />
                 </div>
                 <p className="text-[13px] font-semibold" style={{ color: G.white }}>Tap to select video</p>
-                <p className="text-[11px]" style={{ color: G.muted }}>Video files only · 3-15 seconds</p>
+                <p className="text-[11px]" style={{ color: G.muted }}>Video files only · {SHOOTING_VIDEO_DURATION_LABEL}</p>
                 <p className="text-[10px] max-w-[240px] leading-relaxed" style={{ color: G.muted }}>
                   Choose a short shooting clip for the AI technique analysis preview.
                 </p>

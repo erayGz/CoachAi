@@ -1,31 +1,28 @@
 # CoachAI
 
-## MVP Module
+CoachAI is a mobile-first football coaching app. Its first module, **Shooting Lab**, analyzes a short video of one shot and returns a technique breakdown, feedback, and a practice drill when it identifies an area to work on. Inference runs on the local CPU with pre-trained MediaPipe models and requires no API key or paid service.
 
-Football · Shooting Lab
+## How Shot Analysis Works
 
-## Description
+1. FastAPI validates the upload. OpenCV decodes the video and uses the frame timestamps to measure duration and estimate when contact occurred.
+2. MediaPipe estimates the player’s pose and detects the ball. CoachAI links ball observations before and after the strike and checks them against foot movement. A local retry can zoom in around a kick in a wide view and recover a track across a brief detection gap.
+3. The `shooting-2d-v1` rubric scores support-foot placement, torso tilt, and follow-through from the available 2D measurements. The report shows how many measurements contribute to the score and can recommend a drill for the lowest-scoring area.
 
-CoachAI is a mobile-first AI sports coaching MVP. The first module analyzes a short single-shot football shooting video and returns a technical score, feedback, and training recommendations.
-
-## Current Status
-
-Frontend MVP connected to a FastAPI mock backend. The backend extracts basic video metadata with OpenCV, samples lightweight frame metadata, runs an optional MediaPipe Tasks pose detection scaffold for detection quality, validates video duration, evaluates metadata-based video quality, estimates shooting drill validity with lightweight heuristics, derives pose-aware confidence, and returns dynamic mocked analysis results for local integration testing.
+Keep the whole player and the ball visible around the kick. The app accepts clips from **1 to 15 seconds** and up to **100 MB**. It returns a retake message when it cannot verify the strike or measure enough of the technique. See the [backend documentation](backend/README.md) for the metric definitions and API responses.
 
 ## Main Features
 
 - Mobile-first / PWA-style layout
 - Shooting video upload
 - Video file validation
-- 3-15 second duration validation
+- 1–15 second duration validation
 - Processing flow
-- Dynamic weighted mock analysis results
-- FastAPI mock analysis API
+- Deterministic technique scoring and training advice from an uploaded video
+- FastAPI analysis API
 - OpenCV video metadata extraction
 - Lightweight sampled frame metadata
-- Motion-aware pose candidate sampling
-- Pose detection scaffold
-- Heuristic shooting drill validity checks
+- MediaPipe pose estimation and ball tracking
+- A contact estimate based on foot proximity and ball movement
 - Local-only samples dataset and evaluation runner
 - Dataset intake metadata validation
 - Analysis confidence labels
@@ -48,36 +45,30 @@ Frontend MVP connected to a FastAPI mock backend. The backend extracts basic vid
 - localStorage
 - FastAPI
 - OpenCV
+- MediaPipe Tasks
 
 ## How To Run
 
-```bash
-npm install
-npm run dev
-npm run build
+One-time setup from the project root on Windows:
+
+```powershell
+npm.cmd install
+python -m venv backend\.venv
+.\backend\.venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+.\backend\.venv\Scripts\python.exe backend\scripts\setup_pose_model.py
 ```
 
-The local development server runs at:
+On macOS or Linux, run `npm install` and follow the virtual environment setup in the [backend README](backend/README.md#setup).
 
-```text
-http://127.0.0.1:5173/
+Start both the Vite frontend and the FastAPI backend from the project root:
+
+```powershell
+npm.cmd run dev
 ```
 
-The frontend reads the backend URL from:
+On macOS or Linux, use `npm run dev`. Open http://127.0.0.1:5173/. The API runs at http://127.0.0.1:8000. Press Ctrl+C to stop both servers. Restart the command after editing Python code.
 
-```text
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
-
-If the variable is not set, the frontend falls back to `http://127.0.0.1:8000`.
-
-For local full-stack testing, run the backend on port `8000`:
-
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
-```
+The frontend uses `VITE_API_BASE_URL` when set and defaults to `http://127.0.0.1:8000`. To build the frontend, run `npm run build`. FastAPI serves interactive API documentation at `http://127.0.0.1:8000/docs`.
 
 Backend endpoints:
 
@@ -85,7 +76,28 @@ Backend endpoints:
 - `GET /health`
 - `POST /analyze/shooting`
 
-The analyze endpoint accepts `video/*` uploads up to 100 MB. It temporarily writes the uploaded video, extracts OpenCV metadata, returns up to 10 lightweight sampled frame metadata records, and can use up to 20 internal pose candidate frames chosen from a mix of evenly spaced and high-motion frames. When `backend/models/pose_landmarker_lite.task` exists, the backend runs optional MediaPipe Tasks Pose Landmarker detection, validates that duration is 3-15 seconds, estimates whether the clip matches the single-shot shooting drill requirements, deletes the temporary file, and returns mocked scoring plus `videoMetadata`, `videoQualityReport`, `drillValidityReport`, `sampledFrames`, optional `poseAnalysis`, and `analysisConfidence`. Backend errors return a `detail` message, and the frontend shows that message in the Processing error state when available.
+`POST /analyze/shooting` accepts a multipart `video/*` upload in the `file` field and deletes its temporary copy after processing. Successful responses include `shotMeasurements`, `scoringVersion`, technique coverage, feedback, and recommendations.
+
+## Evaluation Results
+
+The contact evaluator aligns published `last_touch` markers from the Women’s Soccer Penalty Kick Data with decoded video timestamps. It reports missed shots, false detections, frame error against reviewed contact intervals, and kicking-foot agreement. [Dataset source](https://data.mendeley.com/datasets/compare/brx9bsxnpx)
+
+| Evaluation set | Result |
+| --- | --- |
+| 10 regression clips | 10/10 shots detected, up from 8/10. All estimated contacts fell within the reviewed frame intervals and all kicking feet matched. |
+| Four raw shots from held-out players | 2/4 shots detected. |
+| Two trimmed pre-strike controls | 0/2 false detections. |
+| One horizontally mirrored left-foot control | 0/1 shots detected. |
+
+These small sets measure contact detection. Technique scores use provisional thresholds. A partial score of 100 means the average of the available subscores rounded to 100. Independent coach reviews are needed to calibrate technique feedback and drill recommendations. See the [reproduction steps and coach review workflow](samples/README.md#shooting-contact-and-coaching-evaluation).
+
+Run the backend unit tests from the project root on Windows.
+
+```powershell
+Push-Location backend
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+Pop-Location
+```
 
 ## Dataset Intake And Validation
 
@@ -125,7 +137,7 @@ CoachAI includes a local-only serious game foundation for MVP demos:
 
 Progression is saved on this device in localStorage under `coachai.gamification`. It is not connected to authentication, a database, or cloud sync yet.
 
-The Shooting Skill Tree is saved under `coachai.skillTree`. It tracks six technical shooting skills plus `Recording Clarity` for unclear clips and `Shot Action Clarity` for invalid clips. Skill XP is still based on mocked analysis results and heuristic validity signals. Future real pose, ball, and contact metrics should update these skills more accurately.
+The Shooting Skill Tree is saved under `coachai.skillTree`. Its existing progression logic consumes the available technique scores from the analysis response. Previous sessions remain on the device and may contain scores generated before the real analysis was added.
 
 The adaptive weekly training plan is saved under `coachai.weeklyTrainingPlan`. It uses the skill tree, latest result, and drill validity to suggest a weekly focus and four healthy training tasks. Task completion does not grant XP in this phase.
 
@@ -135,15 +147,9 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 
 ## Current Limitations
 
-- No real AI analysis yet
-- No authentication yet
-- Video is not uploaded to a server yet
-- Results scoring is dynamically mocked by the backend for MVP testing
-- Video quality and reliability are influenced by real metadata
-- Pose analysis is used only for detection quality and confidence, not real scoring
-- Drill validity is heuristic and does not use real ball detection yet
-- Invalid or unclear clips lower confidence, cap scores, and avoid overconfident feedback
-- Low or partial pose detection produces more cautious feedback
+- Record one player taking one shot with the full body and ball visible around contact.
+- Measurements are two-dimensional and sensitive to framing and perspective. Scoring thresholds require calibration against coach-reviewed clips.
+- Target accuracy, ball speed and the exact point of impact on the foot are outside the current analysis.
 - Local samples are for calibration only and are not committed
 - XP, quests, streaks, and badges are local-only and can be cleared from browser storage
 - Skill tree progress and training path recommendations are local-only for now
@@ -151,6 +157,6 @@ Splash → Dashboard → Shooting Guide → Video Upload → Processing → Resu
 - Uploaded videos are processed through temporary files and are not stored permanently
 - Sampled frames and pose analysis are returned as metadata only; frame images and pose images are not saved permanently
 
-## Next Planned Phase
+## Next Steps
 
-The next planned phase is replacing the mock scoring in `/analyze/shooting` with real video analysis.
+Expand the held-out set with independently recorded phone footage, natural left-foot strikes, and a wider variety of non-shooting actions. Compare the technique categories and recommended focus with independent coach reviews. The MVP scope remains single-shot analysis.

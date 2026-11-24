@@ -1,4 +1,6 @@
 backend/models/*.task
+backend/models/*.tflite
+backend/models/*.part
 !backend/models/README.md
 
 samples/**/*.mp4

@@ -1,17 +1,13 @@
 import { AlertTriangle } from "lucide-react";
 import { FieldGrid, Header, VideoRuleCard } from "../components";
 import { G } from "../utils/theme";
+import { SHOOTING_VIDEO_DURATION_LABEL } from "../utils/video";
 import type { ScreenProps, VideoRule } from "../types";
 
 const videoRules: VideoRule[] = [
-  { icon: "1", title: "One complete shot only", detail: "Record one full action from approach through follow-through." },
-  { icon: "2", title: "Ball visible at contact", detail: "Keep the ball visible before and during the strike." },
-  { icon: "3", title: "Kicking leg visible", detail: "Do not crop out the striking leg or plant foot." },
-  { icon: "4", title: "Full body stays in frame", detail: "Avoid standing too close to the camera." },
-  { icon: "5", title: "Fixed side angle", detail: "Use a stable side or 45-degree view." },
-  { icon: "6", title: "Video: 3-15 seconds", detail: "Longer or shorter videos cannot be processed reliably." },
-  { icon: "7", title: "One player only", detail: "No other players in the frame during the drill." },
-  { icon: "8", title: "Use a shooting clip", detail: "Avoid random football clips, celebrations, or non-shooting videos." },
+  { icon: "1", title: "One player, one shot", detail: `Use a clip that is ${SHOOTING_VIDEO_DURATION_LABEL} long.` },
+  { icon: "2", title: "Keep the full player in frame", detail: "Include both feet through the end of the kick." },
+  { icon: "3", title: "Keep the ball visible", detail: "Show the ball just before, during and just after the strike." },
 ];
 
 export function ShootingGuideScreen({ go }: ScreenProps) {
@@ -42,7 +38,7 @@ export function ShootingGuideScreen({ go }: ScreenProps) {
             <circle cx="304" cy="132" r="7" fill={G.green} opacity="0.3" />
             <circle cx="304" cy="132" r="4" fill={G.green} opacity="0.6" />
             <rect x="326" y="126" width="4" height="12" rx="2" fill={G.muted} opacity="0.5" />
-            <text x="288" y="112" fill={G.green} fontSize="9" opacity="0.7" fontFamily="'DM Sans', sans-serif">45° / Side</text>
+            <text x="288" y="112" fill={G.green} fontSize="9" opacity="0.7" fontFamily="'DM Sans', sans-serif">Camera</text>
             <text x="82" y="44" fill={G.green} fontSize="9" opacity="0.7" textAnchor="middle" fontFamily="'DM Sans', sans-serif">Goal</text>
             <text x="232" y="152" fill={G.whiteDim} fontSize="9" opacity="0.7" textAnchor="middle" fontFamily="'DM Sans', sans-serif">Ball</text>
           </svg>
@@ -55,7 +51,7 @@ export function ShootingGuideScreen({ go }: ScreenProps) {
         <div className="flex items-start gap-3 rounded-xl px-4 py-3.5" style={{ background: `${G.amber}0F`, border: `1px solid ${G.amber}28` }}>
           <AlertTriangle size={15} color={G.amber} className="flex-shrink-0 mt-0.5" />
           <p className="text-[11px] leading-relaxed" style={{ color: `${G.amber}CC` }}>
-            Poor video quality, missing body parts, or a moving camera will reduce analysis confidence and may affect scores.
+            Use whichever angle gives a clear view of the player and the ball.
           </p>
         </div>
 

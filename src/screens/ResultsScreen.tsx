@@ -36,7 +36,10 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
   const shotActionLabel = formatShotAction(result);
   const drillValidityStatus = result.drillValidityReport?.status;
   const isLimitedPreview = drillValidityStatus === "Unclear" || drillValidityStatus === "Invalid";
-  const scoreLabel = isLimitedPreview ? "Preview Score" : "Overall Score";
+  const metricCount = result.technicalBreakdown.length;
+  const totalMetrics = result.techniqueMetricsTotal;
+  const isPartial = totalMetrics != null && metricCount < totalMetrics;
+  const scoreLabel = isLimitedPreview ? "Preview Score" : isPartial ? "Partial Score" : "Overall Score";
   const weeklyPlan = getWeeklyTrainingPlan();
 
   return (
@@ -75,7 +78,11 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
               <ScoreRing score={result.overallScore} size={130} />
             </div>
             <div className="flex-1 grid grid-cols-2 gap-2">
-              <SummaryBadge label="Level" value={result.level} color={getLevelColor(result.level)} />
+              {isPartial ? (
+                <SummaryBadge label="Coverage" value={`${metricCount}/${totalMetrics} metrics`} color={G.muted} />
+              ) : (
+                <SummaryBadge label="Level" value={result.level} color={getLevelColor(result.level)} />
+              )}
               <SummaryBadge
                 label="Shot Action"
                 value={shotActionLabel}
@@ -108,7 +115,7 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
             </div>
             <div>
               <p className="text-[10px] font-black tracking-widest uppercase" style={{ color: G.green }}>
-                Main Focus This Week
+                {result.mainFocus === "No clear weakness" ? "Technique Assessment" : "Main Focus This Week"}
               </p>
               <p className="text-[22px] font-black uppercase mt-1 leading-none" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
                 {result.mainFocus}
@@ -158,32 +165,34 @@ export function ResultsScreen({ go, currentAnalysisSession }: AppScreenProps) {
           </div>
         </div>
 
-        <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
-          <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${G.border}` }}>
-            <Activity size={14} color={G.blue} />
-            <div>
-              <p className="text-[11px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
-                Recommended Training
-              </p>
-              <p className="text-[10px] mt-0.5" style={{ color: G.green }}>
-                7-day mini plan preview
-              </p>
+        {result.recommendedTraining.length > 0 && (
+          <div className="rounded-2xl overflow-hidden" style={{ background: G.card, border: `1px solid ${G.border}` }}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${G.border}` }}>
+              <Activity size={14} color={G.blue} />
+              <div>
+                <p className="text-[11px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+                  Recommended Training
+                </p>
+                <p className="text-[10px] mt-0.5" style={{ color: G.green }}>
+                  7-day mini plan preview
+                </p>
+              </div>
+            </div>
+            <div className="divide-y" style={{ borderColor: G.border }}>
+              {result.recommendedTraining.map((drill, index) => (
+                <PlanDay key={`${drill.name}-${index}`} drill={drill} day={index + 1} />
+              ))}
+            </div>
+            <div className="px-4 py-3" style={{ borderTop: `1px solid ${G.border}` }}>
+              <button
+                className="w-full py-3 rounded-xl text-[13px] font-black tracking-wide uppercase transition-all active:scale-[0.98]"
+                style={{ background: G.card2, color: G.green, border: `1px solid ${G.greenBorder}`, fontFamily: "'Barlow Condensed', sans-serif" }}
+              >
+                Start 7-Day Plan
+              </button>
             </div>
           </div>
-          <div className="divide-y" style={{ borderColor: G.border }}>
-            {result.recommendedTraining.map((drill, index) => (
-              <PlanDay key={`${drill.name}-${index}`} drill={drill} day={index + 1} />
-            ))}
-          </div>
-          <div className="px-4 py-3" style={{ borderTop: `1px solid ${G.border}` }}>
-            <button
-              className="w-full py-3 rounded-xl text-[13px] font-black tracking-wide uppercase transition-all active:scale-[0.98]"
-              style={{ background: G.card2, color: G.green, border: `1px solid ${G.greenBorder}`, fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              Start 7-Day Plan
-            </button>
-          </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <button
@@ -355,29 +364,33 @@ function SkillProgressCard({
         </div>
       )}
 
-      <div className="mt-3 rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
-        <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
-          Recommended Focus
-        </p>
-        <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
-          {recommendedFocus?.name ?? result.mainFocus}
-        </p>
-      </div>
+      {result.mainFocus !== "No clear weakness" && (
+        <>
+          <div className="mt-3 rounded-xl px-3 py-2" style={{ background: G.card2, border: `1px solid ${G.border}` }}>
+            <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.muted }}>
+              Recommended Focus
+            </p>
+            <p className="text-[13px] font-black mt-1" style={{ color: G.white, fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {recommendedFocus?.name ?? result.mainFocus}
+            </p>
+          </div>
 
-      <div className="mt-2 rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
-        <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.green }}>
-          This Week's Plan
-        </p>
-        <p className="text-[12px] font-black mt-1" style={{ color: G.white }}>
-          {weeklyPlan.focusSkillName}
-        </p>
-        <p className="text-[11px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
-          Next task: {nextPlanTask?.title ?? fallbackTrainingStep.title}
-        </p>
-        <p className="text-[10px] mt-1 leading-relaxed" style={{ color: `${G.green}AA` }}>
-          {nextPlanTask?.description ?? fallbackTrainingStep.description}
-        </p>
-      </div>
+          <div className="mt-2 rounded-xl px-3 py-2" style={{ background: G.greenDim, border: `1px solid ${G.greenBorder}` }}>
+            <p className="text-[8px] font-black tracking-widest uppercase" style={{ color: G.green }}>
+              This Week's Plan
+            </p>
+            <p className="text-[12px] font-black mt-1" style={{ color: G.white }}>
+              {weeklyPlan.focusSkillName}
+            </p>
+            <p className="text-[11px] mt-1 leading-relaxed" style={{ color: G.whiteDim }}>
+              Next task: {nextPlanTask?.title ?? fallbackTrainingStep.title}
+            </p>
+            <p className="text-[10px] mt-1 leading-relaxed" style={{ color: `${G.green}AA` }}>
+              {nextPlanTask?.description ?? fallbackTrainingStep.description}
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

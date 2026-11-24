@@ -31,6 +31,7 @@ AnalysisMainFocus = Literal[
     "Accuracy",
     "Recording Clarity",
     "Shot Action Clarity",
+    "No clear weakness",
 ]
 
 
@@ -125,6 +126,14 @@ class TrainingPlanItem(BaseModel):
     focus: str
 
 
+class ShotMeasurements(BaseModel):
+    contactTimeSeconds: float = Field(ge=0)
+    kickingFoot: Literal["left", "right"]
+    plantFootDistanceTorsoLengths: float | None = Field(default=None, ge=0)
+    torsoTiltDegrees: float | None = Field(default=None, ge=0, le=180)
+    followThroughTorsoLengths: float | None = None
+
+
 class ShootingAnalysisResponse(BaseModel):
     id: str
     createdAt: datetime
@@ -139,6 +148,7 @@ class ShootingAnalysisResponse(BaseModel):
     mainFocus: AnalysisMainFocus
     mainFocusDescription: str
     technicalBreakdown: list[TechnicalBreakdownItem]
+    techniqueMetricsTotal: int | None = Field(default=None, ge=1)
     aiCoachFeedback: str
     recommendedTraining: list[TrainingPlanItem]
     uploadedFile: UploadedFileMetadata
@@ -147,3 +157,5 @@ class ShootingAnalysisResponse(BaseModel):
     drillValidityReport: DrillValidityReport | None = None
     sampledFrames: list[SampledFrameInfo]
     poseAnalysis: PoseAnalysisSummary | None = None
+    shotMeasurements: ShotMeasurements | None = None
+    scoringVersion: str | None = None

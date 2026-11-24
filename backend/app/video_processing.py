@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from math import isfinite
+from statistics import median
+
 import cv2
 
 from .config import MAX_VIDEO_DURATION_SECONDS, MIN_VIDEO_DURATION_SECONDS
@@ -7,7 +11,6 @@ from .models import SampledFrameInfo, VideoMetadata, VideoQualityCheck, VideoQua
 
 
 MAX_SAMPLED_FRAMES = 10
-MAX_POSE_ANALYSIS_FRAMES = 20
 
 
 class InvalidVideoError(Exception):
@@ -18,32 +21,46 @@ class VideoMetadataExtractionError(Exception):
     """Raised when metadata extraction fails unexpectedly."""
 
 
-def extract_video_metadata(video_path: str) -> VideoMetadata:
-    capture = cv2.VideoCapture(video_path)
+@dataclass(frozen=True)
+class VideoTimeline:
+    metadata: VideoMetadata
+    frame_times: tuple[float, ...]
 
+    def sample_frames(self, max_frames: int = MAX_SAMPLED_FRAMES) -> list[SampledFrameInfo]:
+        return [
+            SampledFrameInfo(
+                frameIndex=index,
+                timestampSeconds=round(self.frame_times[index], 2),
+                width=self.metadata.width,
+                height=self.metadata.height,
+            )
+            for index in _select_frame_indexes(len(self.frame_times), max_frames)
+        ]
+
+
+def extract_video_timeline(video_path: str) -> VideoTimeline:
+    capture = cv2.VideoCapture(video_path)
     try:
         if not capture.isOpened():
             raise InvalidVideoError("OpenCV could not open the uploaded video.")
 
-        fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
+        nominal_fps = capture.get(cv2.CAP_PROP_FPS)
         width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
         height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-        frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-
-        if width <= 0 or height <= 0 or frame_count <= 0:
+        if width <= 0 or height <= 0:
             raise InvalidVideoError("OpenCV could not read valid video metadata.")
 
-        duration_seconds = frame_count / fps if fps > 0 else 0.0
-        sampled_frame_count = _sample_frames(capture, frame_count)
-
-        return VideoMetadata(
-            durationSeconds=round(duration_seconds, 2),
-            fps=round(fps, 2),
+        frame_times, frame_interval = _read_frame_times(capture, nominal_fps)
+        duration_seconds = frame_times[-1] + frame_interval
+        metadata = VideoMetadata(
+            durationSeconds=round(duration_seconds, 9),
+            fps=round(len(frame_times) / duration_seconds, 2),
             width=width,
             height=height,
-            frameCount=frame_count,
-            sampledFrameCount=sampled_frame_count,
+            frameCount=len(frame_times),
+            sampledFrameCount=0,
         )
+        return VideoTimeline(metadata, frame_times)
     except InvalidVideoError:
         raise
     except Exception as exc:
@@ -52,62 +69,29 @@ def extract_video_metadata(video_path: str) -> VideoMetadata:
         capture.release()
 
 
-def extract_sample_frames(video_path: str, max_frames: int = MAX_SAMPLED_FRAMES) -> list[SampledFrameInfo]:
-    capture = cv2.VideoCapture(video_path)
+def _read_frame_times(capture: cv2.VideoCapture, nominal_fps: float) -> tuple[tuple[float, ...], float]:
+    fallback_interval = 1 / nominal_fps if isfinite(nominal_fps) and nominal_fps > 0 else None
+    timestamps = []
+    has_clock = True
+    while capture.grab():
+        time = capture.get(cv2.CAP_PROP_POS_MSEC) / 1000
+        has_clock = has_clock and isfinite(time) and (not timestamps or time >= timestamps[-1])
+        timestamps.append(time)
 
-    try:
-        if not capture.isOpened():
-            raise InvalidVideoError("OpenCV could not open the uploaded video.")
+        # The advertised frame count can include footage outside the visible cut.
+        elapsed = time - timestamps[0] if has_clock else 0.0
+        if elapsed == 0 and fallback_interval is not None:
+            elapsed = len(timestamps) * fallback_interval
+        if elapsed > MAX_VIDEO_DURATION_SECONDS + 1e-9:
+            break
 
-        fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
-        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
-        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-        frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-
-        if width <= 0 or height <= 0 or frame_count <= 0:
-            raise InvalidVideoError("OpenCV could not read valid video metadata.")
-
-        return _sample_frame_infos(capture, frame_count, fps, width, height, max_frames)
-    except InvalidVideoError:
-        raise
-    except Exception as exc:
-        raise VideoMetadataExtractionError("Unexpected sample frame extraction error.") from exc
-    finally:
-        capture.release()
-
-
-def extract_pose_candidate_frames(video_path: str, max_frames: int = MAX_POSE_ANALYSIS_FRAMES) -> list[SampledFrameInfo]:
-    capture = cv2.VideoCapture(video_path)
-
-    try:
-        if not capture.isOpened():
-            raise InvalidVideoError("OpenCV could not open the uploaded video.")
-
-        fps = float(capture.get(cv2.CAP_PROP_FPS) or 0)
-        width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH) or 0)
-        height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT) or 0)
-        frame_count = int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-
-        if width <= 0 or height <= 0 or frame_count <= 0:
-            raise InvalidVideoError("OpenCV could not read valid video metadata.")
-
-        even_count = min(max_frames // 2, frame_count)
-        even_indexes = _select_frame_indexes(frame_count, even_count)
-        motion_indexes = _select_high_motion_frame_indexes(
-            capture=capture,
-            frame_count=frame_count,
-            max_motion_frames=max_frames - len(even_indexes),
-            probe_count=min(frame_count, max(max_frames * 3, 12)),
-        )
-        frame_indexes = sorted(set(even_indexes + motion_indexes))[:max_frames]
-
-        return _sample_frame_infos_for_indexes(capture, frame_indexes, fps, width, height)
-    except InvalidVideoError:
-        raise
-    except Exception as exc:
-        raise VideoMetadataExtractionError("Unexpected pose candidate frame extraction error.") from exc
-    finally:
-        capture.release()
+    if has_clock and timestamps and timestamps[-1] > timestamps[0]:
+        intervals = [end - start for start, end in zip(timestamps, timestamps[1:]) if end > start]
+        # The last timestamp is a frame start. Estimate its display interval from nearby frames.
+        return tuple(time - timestamps[0] for time in timestamps), median(intervals[-10:])
+    if not timestamps or fallback_interval is None:
+        raise InvalidVideoError("OpenCV could not read the video frame timing.")
+    return tuple(index * fallback_interval for index in range(len(timestamps))), fallback_interval
 
 
 def evaluate_video_quality(metadata: VideoMetadata) -> VideoQualityReport:
@@ -142,87 +126,6 @@ def evaluate_video_quality(metadata: VideoMetadata) -> VideoQualityReport:
         warnings=warnings,
         checks=checks,
     )
-
-
-def _sample_frames(capture: cv2.VideoCapture, frame_count: int) -> int:
-    return len(_sample_frame_infos(capture, frame_count, 0, 0, 0, MAX_SAMPLED_FRAMES))
-
-
-def _sample_frame_infos(
-    capture: cv2.VideoCapture,
-    frame_count: int,
-    fps: float,
-    fallback_width: int,
-    fallback_height: int,
-    max_frames: int,
-) -> list[SampledFrameInfo]:
-    frame_indexes = _select_frame_indexes(frame_count, max_frames)
-
-    return _sample_frame_infos_for_indexes(
-        capture=capture,
-        frame_indexes=frame_indexes,
-        fps=fps,
-        fallback_width=fallback_width,
-        fallback_height=fallback_height,
-    )
-
-
-def _sample_frame_infos_for_indexes(
-    capture: cv2.VideoCapture,
-    frame_indexes: list[int],
-    fps: float,
-    fallback_width: int,
-    fallback_height: int,
-) -> list[SampledFrameInfo]:
-    sampled_frames: list[SampledFrameInfo] = []
-
-    for frame_index in frame_indexes:
-        capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
-        success, frame = capture.read()
-        if not success:
-            continue
-
-        frame_height, frame_width = frame.shape[:2]
-        sampled_frames.append(
-            SampledFrameInfo(
-                frameIndex=frame_index,
-                timestampSeconds=round(frame_index / fps, 2) if fps > 0 else 0,
-                width=int(frame_width or fallback_width),
-                height=int(frame_height or fallback_height),
-            )
-        )
-
-    return sampled_frames
-
-
-def _select_high_motion_frame_indexes(
-    capture: cv2.VideoCapture,
-    frame_count: int,
-    max_motion_frames: int,
-    probe_count: int,
-) -> list[int]:
-    if max_motion_frames <= 0 or probe_count <= 1:
-        return []
-
-    probe_indexes = _select_frame_indexes(frame_count, probe_count)
-    previous_gray = None
-    scored_indexes: list[tuple[float, int]] = []
-
-    for frame_index in probe_indexes:
-        capture.set(cv2.CAP_PROP_POS_FRAMES, frame_index)
-        success, frame = capture.read()
-        if not success:
-            continue
-
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        if previous_gray is not None:
-            diff = cv2.absdiff(gray, previous_gray)
-            scored_indexes.append((float(diff.mean()), frame_index))
-
-        previous_gray = gray
-
-    scored_indexes.sort(key=lambda item: item[0], reverse=True)
-    return sorted({frame_index for _, frame_index in scored_indexes[:max_motion_frames]})
 
 
 def _select_frame_indexes(frame_count: int, max_frames: int) -> list[int]:

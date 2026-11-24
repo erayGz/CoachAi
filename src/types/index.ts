@@ -112,7 +112,8 @@ export type ShootingAnalysisCategory =
 export type AnalysisMainFocus =
   | ShootingAnalysisCategory
   | "Recording Clarity"
-  | "Shot Action Clarity";
+  | "Shot Action Clarity"
+  | "No clear weakness";
 
 export type ShootingAnalysisResult = {
   id?: string;
@@ -129,6 +130,7 @@ export type ShootingAnalysisResult = {
   mainFocus: AnalysisMainFocus;
   mainFocusDescription: string;
   technicalBreakdown: SubScore[];
+  techniqueMetricsTotal?: number | null;
   aiCoachFeedback: string;
   recommendedTraining: TrainingDrill[];
   uploadedFile?: UploadedFileMetadata;

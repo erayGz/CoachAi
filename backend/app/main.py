@@ -1,8 +1,10 @@
+import asyncio
 import logging
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import (
@@ -14,37 +16,26 @@ from .config import (
     SERVICE_NAME,
     VERSION,
 )
-from .drill_validity import evaluate_shooting_drill_validity
-from .mock_analysis import generate_mock_shooting_analysis
-from .models import (
-    AnalysisReliability,
-    DrillValidityReport,
-    HealthResponse,
-    PoseAnalysisSummary,
-    RootResponse,
-    SampledFrameInfo,
-    ShootingAnalysisResponse,
-    UploadedFileMetadata,
-    VideoMetadata,
-    VideoQualityReport,
-)
-from .pose_analysis import PoseAnalysisError, analyze_pose_from_video
+from .models import HealthResponse, RootResponse, ShootingAnalysisResponse, UploadedFileMetadata
+from .shooting_report import build_shooting_report
+from .shot_detection import UnscorableShotError, find_single_contact, measure_shot
+from .shot_recovery import recover_shot
+from .shot_vision import ShotVisionError, observe_video, summarize_pose
 from .video_processing import (
     InvalidVideoError,
     VideoMetadataExtractionError,
+    VideoTimeline,
     evaluate_video_quality,
-    extract_pose_candidate_frames,
-    extract_video_metadata,
-    extract_sample_frames,
+    extract_video_timeline,
 )
 
 
 logger = logging.getLogger(__name__)
-
+analysis_slots = asyncio.Semaphore(2)
 
 app = FastAPI(
     title="CoachAI Backend",
-    description="Mock backend API for the CoachAI Football · Shooting Lab MVP.",
+    description="Local football shooting analysis using player pose and ball tracking.",
     version=VERSION,
 )
 
@@ -74,204 +65,100 @@ async def health() -> HealthResponse:
 @app.post("/analyze/shooting", response_model=ShootingAnalysisResponse)
 async def analyze_shooting(file: UploadFile = File(...)) -> ShootingAnalysisResponse:
     temp_video_path: str | None = None
-
     try:
         content_type = file.content_type or ""
-
         if not content_type.startswith("video/"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only video files are supported.",
-            )
+            raise HTTPException(status_code=400, detail="Only video files are supported.")
 
         temp_video_path, file_size_bytes = await _write_upload_to_temp_file(file)
-
         if file_size_bytes == 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded video is empty.",
-            )
-
-        try:
-            video_metadata = extract_video_metadata(temp_video_path)
-            sampled_frames = extract_sample_frames(temp_video_path)
-        except InvalidVideoError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Uploaded file could not be read as a valid video.",
-            )
-        except VideoMetadataExtractionError:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Video metadata extraction failed.",
-            )
-
-        try:
-            pose_candidate_frames = extract_pose_candidate_frames(temp_video_path)
-        except (InvalidVideoError, VideoMetadataExtractionError) as exc:
-            logger.warning("Pose candidate frame sampling fell back to public sampled frames: %s", exc)
-            pose_candidate_frames = sampled_frames
-
-        video_metadata = _with_sampled_frame_count(video_metadata, len(sampled_frames))
-
-        if video_metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Video is too short. Please upload a {MIN_VIDEO_DURATION_SECONDS}–{MAX_VIDEO_DURATION_SECONDS} second shooting video.",
-            )
-
-        if video_metadata.durationSeconds > MAX_VIDEO_DURATION_SECONDS:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Video is too long. Please upload a {MIN_VIDEO_DURATION_SECONDS}–{MAX_VIDEO_DURATION_SECONDS} second shooting video.",
-            )
-
-        video_quality_report = evaluate_video_quality(video_metadata)
-        pose_analysis, pose_warning = _analyze_pose_safely(temp_video_path, pose_candidate_frames)
-        video_quality_report = _with_pose_analysis_adjustments(
-            video_quality_report,
-            pose_analysis,
-            pose_warning,
-        )
-        drill_validity_report = evaluate_shooting_drill_validity(
-            video_metadata,
-            video_quality_report,
-            pose_analysis,
-        )
-        video_quality_report = _with_drill_validity_adjustments(
-            video_quality_report,
-            drill_validity_report,
-        )
+            raise HTTPException(status_code=400, detail="Uploaded video is empty.")
 
         uploaded_file = UploadedFileMetadata(
             filename=file.filename or "shooting-video",
             contentType=content_type,
             fileSizeBytes=file_size_bytes,
         )
-
-        return generate_mock_shooting_analysis(
-            uploaded_file,
-            video_metadata,
-            video_quality_report,
-            sampled_frames,
-            pose_analysis,
-            drill_validity_report,
-        )
+        async with analysis_slots:
+            return await run_in_threadpool(_analyze_video, temp_video_path, uploaded_file)
     finally:
-        await file.close()
-        if temp_video_path:
-            Path(temp_video_path).unlink(missing_ok=True)
+        try:
+            await file.close()
+        finally:
+            if temp_video_path:
+                Path(temp_video_path).unlink(missing_ok=True)
+
+
+def _analyze_video(
+    video_path: str, uploaded_file: UploadedFileMetadata, *, timeline: VideoTimeline | None = None
+) -> ShootingAnalysisResponse:
+    duration_range = f"{MIN_VIDEO_DURATION_SECONDS}–{MAX_VIDEO_DURATION_SECONDS}"
+    try:
+        if timeline is None:
+            timeline = extract_video_timeline(video_path)
+        metadata = timeline.metadata
+        if metadata.durationSeconds < MIN_VIDEO_DURATION_SECONDS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video is too short. Please upload a {duration_range} second shooting video.",
+            )
+        if metadata.durationSeconds > MAX_VIDEO_DURATION_SECONDS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Video is too long. Please upload a {duration_range} second shooting video.",
+            )
+
+        sampled_frames = timeline.sample_frames()
+        metadata = metadata.model_copy(update={"sampledFrameCount": len(sampled_frames)})
+        quality = evaluate_video_quality(metadata)
+        frames = observe_video(video_path, timeline)
+        try:
+            contact = find_single_contact(frames)
+            measurements = measure_shot(frames, contact)
+        except UnscorableShotError as original_error:
+            if not original_error.recoverable:
+                raise
+            recovered = recover_shot(video_path, timeline, frames)
+            if recovered is None:
+                raise
+            frames, contact, measurements = recovered
+    except InvalidVideoError as exc:
+        raise HTTPException(status_code=400, detail="Uploaded file could not be read as a valid video.") from exc
+    except VideoMetadataExtractionError as exc:
+        logger.exception("Video metadata extraction failed")
+        raise HTTPException(status_code=500, detail="Video metadata extraction failed.") from exc
+    except ShotVisionError as exc:
+        logger.exception("Local shooting analysis failed")
+        raise HTTPException(
+            status_code=503,
+            detail="Shooting analysis is temporarily unavailable. Check the local analysis model setup.",
+        ) from exc
+    except UnscorableShotError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return build_shooting_report(
+        uploaded_file, metadata, quality, sampled_frames, summarize_pose(frames), measurements,
+        evidence=contact.evidence,
+    )
 
 
 async def _write_upload_to_temp_file(file: UploadFile) -> tuple[str, int]:
     file_size_bytes = 0
     temp_video_path: str | None = None
-
+    suffix = Path(file.filename or "").suffix or ".video"
     try:
-        with NamedTemporaryFile(delete=False, suffix=_get_temp_suffix(file.filename)) as temp_file:
+        with NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_video_path = temp_file.name
-
-            while True:
-                chunk = await file.read(READ_CHUNK_SIZE_BYTES)
-                if not chunk:
-                    break
-
+            while chunk := await file.read(READ_CHUNK_SIZE_BYTES):
                 file_size_bytes += len(chunk)
-
                 if file_size_bytes > MAX_VIDEO_SIZE_BYTES:
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                         detail="Video file is too large. Maximum size is 100 MB.",
                     )
-
                 temp_file.write(chunk)
-
         return temp_video_path, file_size_bytes
-    except Exception:
+    except BaseException:
         if temp_video_path:
             Path(temp_video_path).unlink(missing_ok=True)
         raise
-
-
-def _get_temp_suffix(filename: str | None) -> str:
-    suffix = Path(filename or "").suffix
-    return suffix if suffix else ".video"
-
-
-def _with_sampled_frame_count(metadata: VideoMetadata, sampled_frame_count: int) -> VideoMetadata:
-    return VideoMetadata(
-        durationSeconds=metadata.durationSeconds,
-        fps=metadata.fps,
-        width=metadata.width,
-        height=metadata.height,
-        frameCount=metadata.frameCount,
-        sampledFrameCount=sampled_frame_count,
-    )
-
-
-def _analyze_pose_safely(
-    video_path: str,
-    sampled_frames: list[SampledFrameInfo],
-) -> tuple[PoseAnalysisSummary | None, str | None]:
-    try:
-        return analyze_pose_from_video(video_path, sampled_frames), None
-    except PoseAnalysisError as exc:
-        logger.warning("Pose analysis skipped: %s", exc)
-        return None, "Pose analysis could not be completed."
-
-
-def _with_pose_analysis_adjustments(
-    report: VideoQualityReport,
-    pose_analysis: PoseAnalysisSummary | None,
-    pose_warning: str | None,
-) -> VideoQualityReport:
-    warnings = list(report.warnings)
-    reliability = report.reliability
-
-    if pose_warning:
-        _append_warning(warnings, pose_warning)
-        reliability = _cap_high_reliability(reliability)
-    elif pose_analysis is not None and pose_analysis.poseQuality == "Poor":
-        _append_warning(warnings, "Pose detection was limited, so technique feedback is less certain.")
-        reliability = "Medium"
-    elif pose_analysis is not None and pose_analysis.poseQuality == "Partial":
-        _append_warning(warnings, "Pose detection was partial, so some technique feedback may be approximate.")
-        reliability = _cap_high_reliability(reliability)
-
-    return VideoQualityReport(
-        quality=report.quality,
-        reliability=reliability,
-        warnings=warnings,
-        checks=report.checks,
-    )
-
-
-def _with_drill_validity_adjustments(
-    report: VideoQualityReport,
-    drill_validity_report: DrillValidityReport,
-) -> VideoQualityReport:
-    warnings = list(report.warnings)
-    reliability = report.reliability
-
-    if drill_validity_report.status == "Invalid":
-        _append_warning(warnings, "Uploaded video does not clearly match the single-shot shooting drill requirements.")
-        reliability = "Medium"
-    elif drill_validity_report.status == "Unclear":
-        _append_warning(warnings, "Shooting action could not be confidently verified.")
-        reliability = "Medium"
-
-    return VideoQualityReport(
-        quality=report.quality,
-        reliability=reliability,
-        warnings=warnings,
-        checks=report.checks,
-    )
-
-
-def _append_warning(warnings: list[str], warning: str) -> None:
-    if warning not in warnings:
-        warnings.append(warning)
-
-
-def _cap_high_reliability(reliability: AnalysisReliability) -> AnalysisReliability:
-    return "Good" if reliability == "High" else reliability
